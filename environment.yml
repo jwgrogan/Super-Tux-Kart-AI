@@ -1,0 +1,13 @@
+name: dl_hw_06
+channels:
+  - pytorch
+  - defaults
+dependencies:
+- pillow
+- matplotlib
+- numpy
+- "pytorch>=1.2"
+- "torchvision>=0.4"
+- "tensorboard>=1.14"
+- future
+- PySuperTuxKart

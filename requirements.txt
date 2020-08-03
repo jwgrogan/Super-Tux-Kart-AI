@@ -1,0 +1,8 @@
+Pillow
+future
+matplotlib
+numpy
+tensorboard>=1.14
+torch>=1.2
+torchvision>=0.4
+PySuperTuxKart
