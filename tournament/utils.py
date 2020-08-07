@@ -9,7 +9,7 @@ class Player:
 
     @property
     def config(self):
-        return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.PLAYER_CONTROL, kart=self.player.kart, team=self.team)
+        return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart, team=self.team)
     
     def __call__(self, image, player_info):
         return self.player.act(image, player_info)
@@ -27,7 +27,7 @@ class Tournament:
         self.graphics_config.screen_height = screen_height
         pystk.init(self.graphics_config)
 
-        self.race_config = pystk.RaceConfig(num_kart=len(players), track=track, mode=pystk.RaceConfig.RaceMode.SOCCER)
+        self.race_config = pystk.RaceConfig(num_kart=len(players), track=track, mode=pystk.RaceConfig.RaceMode.SOCCER, difficulty=2)
         self.race_config.players.pop()
         
         self.active_players = []
@@ -48,7 +48,6 @@ class Tournament:
             import os
             if not os.path.exists(save):
                 os.makedirs(save)
-
         for t in range(max_frames):
             print('\rframe %d' % t, end='\r')
 
@@ -67,6 +66,7 @@ class Tournament:
                 list_actions.append(action)
 
                 if save is not None:
+                    # print("porque")
                     PIL.Image.fromarray(image).save(os.path.join(save, 'player%02d_%05d.png' % (i, t)))
 
             s = self.k.step(list_actions)
@@ -78,7 +78,7 @@ class Tournament:
             for i, p in enumerate(self.active_players):
                 dest = os.path.join(save, 'player%02d' % i)
                 output = save + '_player%02d.mp4' % i
-                subprocess.call(['ffmpeg', '-y', '-framerate', '10', '-i', dest + '_%05d.png', output])
+                subprocess.call(['ffmpeg', '-y', '-framerate', '10', '-i', dest + '_%05d.png', output], shell=True)
         if hasattr(state, 'soccer'):
             return state.soccer.score
         return state.soccer_score

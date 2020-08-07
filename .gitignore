@@ -1,0 +1,6 @@
+games/test*
+.vscode
+.idea
+*.pyc
+*.cpython-37.pyc
+*/__pycache__/
