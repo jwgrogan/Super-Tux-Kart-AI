@@ -1,4 +1,4 @@
-from .player import Model, save_model 
+from .model import Model, save_model
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
@@ -9,15 +9,10 @@ from torchvision import transforms as T
 
 def train(args):
     from os import path
-    model = Planner()
+    model = Model()
     train_logger = None
     if args.log_dir is not None:
         train_logger = tb.SummaryWriter(path.join(args.log_dir, 'train'))
-
-    """
-    Your code here, modify your HW4 code
-    
-    """
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     model = model.to(device)
