@@ -1,6 +1,10 @@
 # rocketleagueAI-dl-su20
 Term project for Deep Learning
 
+### Tensorboard
+
+In a seperate terminal, Run : `tensorboard --logdir tmpLogs --reload_interval 1`
+
 
 ### To train this ish:
 
@@ -31,3 +35,4 @@ python -m tournament.gen_train_data random_agent random_agent random_agent rando
 - make sure that whatever value in `-f` multiplied by the number of "random_agent"s is a multiple of 64, 128, 256 (our typical batch sizes) 
 
 Hit Lewai up too cuz there's a couple of commands and it could get messy/complicated.
+
