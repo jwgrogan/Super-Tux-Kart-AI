@@ -1,5 +1,6 @@
 import numpy as np
 import pystk
+from .model import PuckDetector
 
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.functional as TF
@@ -31,7 +32,7 @@ class SuperTuxDataset(Dataset):
         return data
 
 
-def load_data(dataset_path=DATASET_PATH, transform=dense_transforms.ToTensor(), num_workers=0, batch_size=256):
+def load_data(dataset_path=DATASET_PATH, transform=dense_transforms.ToTensor(), num_workers=0, batch_size=128):
     dataset = SuperTuxDataset(dataset_path, transform=transform)
     return DataLoader(dataset, num_workers=num_workers, batch_size=batch_size, shuffle=True, drop_last=True)
 
@@ -156,6 +157,12 @@ class PyTux:
             del self.k
         pystk.clean()
 
+def load_model():
+    from torch import load
+    from os import path
+    r = PuckDetector()
+    r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'model.th'), map_location='cpu'))
+    return r
 
 if __name__ == '__main__':
     from .controller import control

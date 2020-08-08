@@ -1,5 +1,6 @@
 import numpy as np
-from .model import Model
+from .model import PuckDetector
+from .utils import load_model
 import torch
 
 class HockeyPlayer:
@@ -26,18 +27,21 @@ class HockeyPlayer:
         The player_id starts at 0 and increases by one for each player added. You can use the player id to figure out your team 
         (player_id % 2), or assign different roles to different agents.
         """
+        from os import path
+
         # select kart
         self.kart = 'xue'
         # load model
-        from os import path
-        self.model = torch.load(path.join(path.dirname(path.abspath(__file__)), 'model.th'))
-        # select behavior
+        self.model = load_model().eval()
+
+        # Select Team
         self.team = player_id % 2
-        if player_id < 2:
-            self.defense = True
+        # Determine whether player is on offense (position = 0) or defense (position = 1)
+        if (self.team == 0):
+            self.position = (player_id / 2) % 2
         else:
-            self.offense = True
-        
+            self.position = (player_id - 1 / 2 ) % 2
+
         self.teammate_has_puck = False
         
         
@@ -54,14 +58,17 @@ class HockeyPlayer:
         Your code here.
         """
         image = torch.from_numpy(image)
-        ball = self.model.forward(self, image)
+        ball = self.model(image.reshape([image.shape[2], image.shape[0], image.shape[1]]))
+        # print("BALL", ball[0, 0])
         # get kart location
         kart_front = player_info.kart.front
         kart_x = kart_front[0]
-        kart_z = kart_front[2]
+        kart_y = kart_front[1]
+        ball_x = ball[0,0]
+        ball_y = ball[0,1]
 
-        if ball == None:
-            
+        # if ball == None:
+        #
 
         # import csv
         # with open('save/ball_locations.csv', 'r') as f:
@@ -69,8 +76,7 @@ class HockeyPlayer:
         #         ball_location = row 
         #         break
 
-        ball_x = ball[0]
-        ball_z = ball[2]
+
 
         # if current_vel != target_vel:
         #     action.acceleration = 1
@@ -78,26 +84,26 @@ class HockeyPlayer:
         # if x == 0:
         #     action.nitro = True
         
-        if x < 0: #aim_point is to the left
-            if x < -0.5:
+        if ball_x < 0: #aim_point is to the left
+            if ball_x < -0.5:
                 action['drift'] = True
                 action['steer'] = -1
                 action['acceleration'] = .25
                 action['brake'] = True
-            elif x < -0.3:
+            elif ball_x < -0.3:
                 action['drift'] = True
                 action['steer'] = -1
                 action['acceleration'] = .75
             else:
                 action['steer'] = -.7
 
-        elif x > 0: #aim_point is to the right
-            if x > 0.5:
+        elif ball_x > 0: #aim_point is to the right
+            if ball_x > 0.5:
                 action['drift'] = True
                 action['steer'] = 1
                 action['acceleration'] = .25
                 action['brake'] = True
-            elif x > 0.3:
+            elif ball_x > 0.3:
                 action['drift'] = True
                 action['steer'] = 1
                 action['acceleration'] = .75

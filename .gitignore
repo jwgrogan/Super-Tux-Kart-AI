@@ -4,3 +4,6 @@ games/test*
 *.pyc
 *.cpython-37.pyc
 */__pycache__/
+data/
+gameplay/
+tmpLogs/

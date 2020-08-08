@@ -14,7 +14,7 @@ def spatial_argmax(logit):
                         (weights.sum(2) * torch.linspace(-1, 1, logit.size(1)).to(logit.device)[None]).sum(1)), 1)
 
 
-class Model(torch.nn.Module):
+class PuckDetector(torch.nn.Module):
         class Block(torch.nn.Module):
             def __init__(self, n_input, n_output, kernel_size=3, stride=2):
                 super().__init__()
@@ -79,18 +79,14 @@ class Model(torch.nn.Module):
                 # Add the skip connection
                 if self.use_skip:
                     z = torch.cat([z, up_activation[i]], dim=1)
-            
-            img = self.classifier(z)
-            img = torch.squeeze(img, 1)
 
-
-            return spatial_argmax(img)
+            return spatial_argmax(self.classifier(z).squeeze(1))
 
 
 def save_model(model):
     from torch import save
     from os import path
-    if isinstance(model, Planner):
+    if isinstance(model, PuckDetector):
         return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'model.th'))
     raise ValueError("model type '%s' not supported!" % str(type(model)))
 
@@ -98,6 +94,6 @@ def save_model(model):
 def load_model():
     from torch import load
     from os import path
-    r = Planner()
+    r = PuckDetector()
     r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'model.th'), map_location='cpu'))
     return r

@@ -3,25 +3,25 @@ import numpy as np
 import csv
 
 
-class Player:
-  def __init__(self, player, team=0):
-    self.player = player
-    self.team = team
-
-  @property
-  def config(self):
-    return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart,
-                              team=self.team)
-
-  def __call__(self, image, player_info):
-    return self.player.act(image, player_info)
+# class Player:
+#   def __init__(self, player, team=0):
+#     self.player = player
+#     self.team = team
+#
+#   @property
+#   def config(self):
+#     return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart,
+#                               team=self.team)
+#
+#   def __call__(self, image, player_info):
+#     return self.player.act(image, player_info)
 
 
 
 class Tournament:
   _singleton = None
 
-  def __init__(self, players, screen_width=400, screen_height=300, track='icy_soccer_field'):
+  def __init__(self, players, screen_width=128, screen_height=96, track='icy_soccer_field'):
     assert Tournament._singleton is None, "Cannot create more than one Tournament object"
     Tournament._singleton = self
 
@@ -91,9 +91,9 @@ class Tournament:
           # print("porque")
           PIL.Image.fromarray(image).save(os.path.join(save, 'player%02d_%05d.png' % (i, t)))
           ball_location = self.get_vector_from_this_to_that(np.float32(state.players[i].kart.location), np.float32(state.soccer.ball.location))
-          with open(save + '/player%02d_%05d_ball_locations.csv'% (i, t), mode='w') as ball_file:
+          with open(save + '/player%02d_%05d.csv'% (i, t), mode='w') as ball_file:
             ball_writer = csv.writer(ball_file, delimiter=',')
-            ball_writer.writerow(ball_location)
+            ball_writer.writerow([ball_location[0], ball_location[2]])
       s = self.k.step(list_actions)
       if not s:  # Game over
         break

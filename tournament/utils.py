@@ -9,7 +9,7 @@ class Player:
 
     @property
     def config(self):
-        return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart, team=self.team)
+        return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.PLAYER_CONTROL, kart=self.player.kart, team=self.team)
     
     def __call__(self, image, player_info):
         return self.player.act(image, player_info)
