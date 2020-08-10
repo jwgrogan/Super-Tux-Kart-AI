@@ -3,25 +3,25 @@ import numpy as np
 import csv
 
 
-# class Player:
-#   def __init__(self, player, team=0):
-#     self.player = player
-#     self.team = team
-#
-#   @property
-#   def config(self):
-#     return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart,
-#                               team=self.team)
-#
-#   def __call__(self, image, player_info):
-#     return self.player.act(image, player_info)
+class Player:
+  def __init__(self, player, team=0):
+    self.player = player
+    self.team = team
+
+  @property
+  def config(self):
+    return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.AI_CONTROL, kart=self.player.kart,
+                              team=self.team)
+
+  def __call__(self, image, player_info):
+    return self.player.act(image, player_info)
 
 
 
 class Tournament:
   _singleton = None
 
-  def __init__(self, players, screen_width=128, screen_height=96, track='icy_soccer_field'):
+  def __init__(self, players, screen_width=400, screen_height=300, track='icy_soccer_field'):
     assert Tournament._singleton is None, "Cannot create more than one Tournament object"
     Tournament._singleton = self
 
@@ -45,12 +45,6 @@ class Tournament:
     self.k.start()
     self.k.step()
 
-  def to_numpy(self, location):
-      """
-      Don't care about location[1], which is the height
-      """
-      return np.float32([location[0], location[2]])
-
   def get_vector_from_this_to_that(self, me, obj, normalize=True):
     """
     Expects numpy arrays as input
@@ -63,7 +57,23 @@ class Tournament:
 
     return vector
 
-  def play(self, save=None, max_frames=50):
+  def to_numpy(self, location):
+      """
+      Don't care about location[1], which is the height
+      """
+      return np.float32([location[0], location[1], location[2]])
+
+  @staticmethod
+  def _to_image(x, proj, view):
+    p = proj @ view @ np.array(list(x) + [1])
+    return np.clip(np.array([p[0] / p[-1], -p[1] / p[-1]]), -1, 1)
+
+  def play(self, save=None, max_frames=50, verbose=True):
+
+    if verbose:
+      import matplotlib.pyplot as plt
+      fig, ax = plt.subplots(1, 1)
+
     state = pystk.WorldState()
     if save is not None:
       import PIL.Image
@@ -90,10 +100,25 @@ class Tournament:
         if save is not None:
           # print("porque")
           PIL.Image.fromarray(image).save(os.path.join(save, 'player%02d_%05d.png' % (i, t)))
-          ball_location = self.get_vector_from_this_to_that(np.float32(state.players[i].kart.location), np.float32(state.soccer.ball.location))
+          ball_coords = self.to_numpy(state.soccer.ball.location)
+          kart_proj = np.array(state.players[i].camera.projection).T
+          kart_view = np.array(state.players[i].camera.view).T
+          kart_ball_view = self._to_image(ball_coords, kart_proj, kart_view)
+          # np.savez(os.path.join(save, ('ball%02d' % i)), kart_ball_view)
           with open(save + '/player%02d_%05d.csv'% (i, t), mode='w') as ball_file:
             ball_writer = csv.writer(ball_file, delimiter=',')
-            ball_writer.writerow([ball_location[0], ball_location[2]])
+            ball_writer.writerow(kart_ball_view)
+
+        if verbose:
+          ax.clear()
+          ax.imshow(self.k.render_data[0].image)
+          WH2 = np.array([self.graphics_config.screen_width, self.graphics_config.screen_height]) / 2
+          ax.add_artist(
+            plt.Circle(WH2 * (1 + self._to_image(state.players[i].kart.location, kart_proj, kart_view)), 2, ec='b', fill=False, lw=1.5))
+          ax.add_artist(
+            plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=False, lw=1.5))
+          plt.pause(1e-3)
+
       s = self.k.step(list_actions)
       if not s:  # Game over
         break

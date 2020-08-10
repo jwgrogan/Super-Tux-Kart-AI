@@ -1,6 +1,7 @@
 import pystk
 import numpy as np
-
+# TODO: remove this before submitting
+import csv
 
 class Player:
     def __init__(self, player, team=0):
@@ -17,6 +18,20 @@ class Player:
 
 class Tournament:
     _singleton = None
+
+    #TODO: Remove before submitting
+    def get_vector_from_this_to_that(self, me, obj, normalize=True):
+        """
+        Expects numpy arrays as input
+        """
+
+        vector = obj - me
+
+        if normalize:
+            return vector / np.linalg.norm(vector)
+
+        return vector
+    #TODO: END
 
     def __init__(self, players, screen_width=400, screen_height=300, track='icy_soccer_field'):
         assert Tournament._singleton is None, "Cannot create more than one Tournament object"
@@ -68,7 +83,15 @@ class Tournament:
                 if save is not None:
                     # print("porque")
                     PIL.Image.fromarray(image).save(os.path.join(save, 'player%02d_%05d.png' % (i, t)))
-
+                    # TODO: remove this before submitting
+                    ball_location = np.float32(state.soccer.ball.location)
+                    ball_distance = self.get_vector_from_this_to_that(np.float32(state.players[i].kart.location), np.float32(state.soccer.ball.location))
+                    # print("DISTANCCCCEEEE",ball_distance)
+                    with open(save + '/player%02d_%05d.csv' % (i, t), mode='w') as ball_file:
+                        ball_writer = csv.writer(ball_file, delimiter=',')
+                        ball_writer.writerow([ball_location[0], ball_location[2]])
+                        ball_writer.writerow([ball_distance[0], ball_distance[2]])
+                    # TODO: END
             s = self.k.step(list_actions)
             if not s:  # Game over
                 break

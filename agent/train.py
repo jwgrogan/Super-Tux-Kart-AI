@@ -38,7 +38,7 @@ def train(args):
 
     # Define Loss
     loss = torch.nn.MSELoss()
-
+    # loss = torch.nn.BCEWithLogitsLoss()
     # Define model stuff
     layers = [16, 32, 64, 128]
     params_logger.add_text('layers', str(layers))
@@ -54,7 +54,7 @@ def train(args):
                                            dense_transforms.RandomHorizontalFlip(),
                                            dense_transforms.ToTensor()])                                           
 
-    train_data = load_data(args.trainPath, batch_size=256, transform=transform)
+    train_data = load_data(args.trainPath, batch_size=64, transform=transform)
 
     # run training epochs
     global_step = 0
@@ -113,8 +113,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', default=r'tmpLogs')
-    parser.add_argument('--run', default='1')
-    parser.add_argument('-e', '--epoch', default=40)
+    parser.add_argument('--run', default='3')
+    parser.add_argument('-e', '--epoch', default=20)
 
     # Put custom arguments here
     parser.add_argument('-t', '--trainPath', default=r'data/train')

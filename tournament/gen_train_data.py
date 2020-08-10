@@ -1,4 +1,4 @@
-from tournament.utils import Player
+from tournament.gen_data_utils import Player
 from .gen_data_utils import Tournament
 from argparse import ArgumentParser
 import importlib
