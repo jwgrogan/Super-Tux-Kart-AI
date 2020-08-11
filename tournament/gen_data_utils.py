@@ -113,11 +113,23 @@ class Tournament:
           ax.clear()
           ax.imshow(self.k.render_data[0].image)
           WH2 = np.array([self.graphics_config.screen_width, self.graphics_config.screen_height]) / 2
+          # blue circle on player kart
           ax.add_artist(
             plt.Circle(WH2 * (1 + self._to_image(state.players[i].kart.location, kart_proj, kart_view)), 2, ec='b', fill=False, lw=1.5))
+          # red circle on puck
           ax.add_artist(
             plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=False, lw=1.5))
+          # green circle on items
+          for j, item in enumerate(state.items):
+            ax.add_artist(
+              plt.Circle(WH2 * (1 + self._to_image(item.location, kart_proj, kart_view)), 2, ec='g', fill=False, lw=1.5))
+          # yellow circle on other players
+          for j, player in enumerate(self.active_players):
+            if j != i:
+              ax.add_artist(
+                plt.Circle(WH2 * (1 + self._to_image(state.players[j].kart.location, kart_proj, kart_view)), 2, ec='y', fill=False, lw=1.5))
           plt.pause(1e-3)
+          
 
       s = self.k.step(list_actions)
       if not s:  # Game over
