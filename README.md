@@ -1,5 +1,5 @@
-# rocketleagueAI-dl-su20
-Term project for Deep Learning
+# SuperTuxKartAI - Deep Learning - Summer 2020
+Term project for Deep Learning at the University of Texas at Austin. Task is to train a neural network to play SuperTuxKart ice-hockey (basically Rocketleague).
 
 ### Tensorboard
 
