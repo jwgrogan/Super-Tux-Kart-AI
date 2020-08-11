@@ -43,7 +43,7 @@ def train(args):
     layers = [16, 32, 64, 128]
     params_logger.add_text('layers', str(layers))
     model = PuckDetector(layers=layers).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=rate, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=rate)
 
 
     # load the data
@@ -97,24 +97,12 @@ def train(args):
 
 
 if __name__ == '__main__':
-    # import argparse
-    #
-    # parser = argparse.ArgumentParser()
-    #
-    # parser.add_argument('--log_dir')
-    # # Put custom arguments here
-    # parser.add_argument('-n', '--num_epoch', type=int, default=60)
-    # parser.add_argument('-lr', '--learning_rate', type=float, default=1e-3)
-    # # parser.add_argument('-c', '--continue_training', action='store_true')
-    #
-    # args = parser.parse_args()
-    # train(args)
     import argparse
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', default=r'tmpLogs')
-    parser.add_argument('--run', default='3')
-    parser.add_argument('-e', '--epoch', default=20)
+    parser.add_argument('--run', default='6')
+    parser.add_argument('-e', '--epoch', default=10)
 
     # Put custom arguments here
     parser.add_argument('-t', '--trainPath', default=r'data/train')

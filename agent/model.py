@@ -61,9 +61,10 @@ class PuckDetector(torch.nn.Module):
         def forward(self, x):
             """
             Predict the aim point in image coordinate, given the supertuxkart image
-            @img: (B,3,96,128)
+            @img: (B,3,300,400)
             return (B,2)
             """
+            # print("X SHAPE = ", x.shape)
             z = (x - self.input_mean[None, :, None, None].to(x.device)) / self.input_std[None, :, None, None].to(x.device)
             up_activation = []
 

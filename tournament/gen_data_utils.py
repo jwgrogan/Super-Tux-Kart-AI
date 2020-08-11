@@ -68,7 +68,7 @@ class Tournament:
     p = proj @ view @ np.array(list(x) + [1])
     return np.clip(np.array([p[0] / p[-1], -p[1] / p[-1]]), -1, 1)
 
-  def play(self, save=None, max_frames=50, verbose=True):
+  def play(self, save=None, max_frames=50, verbose=False):
 
     if verbose:
       import matplotlib.pyplot as plt
@@ -103,11 +103,11 @@ class Tournament:
           ball_coords = self.to_numpy(state.soccer.ball.location)
           kart_proj = np.array(state.players[i].camera.projection).T
           kart_view = np.array(state.players[i].camera.view).T
-          kart_ball_view = self._to_image(ball_coords, kart_proj, kart_view)
+          kart_ball_coords = self._to_image(ball_coords, kart_proj, kart_view)
           # np.savez(os.path.join(save, ('ball%02d' % i)), kart_ball_view)
           with open(save + '/player%02d_%05d.csv'% (i, t), mode='w') as ball_file:
             ball_writer = csv.writer(ball_file, delimiter=',')
-            ball_writer.writerow(kart_ball_view)
+            ball_writer.writerow(kart_ball_coords)
 
         if verbose:
           ax.clear()
