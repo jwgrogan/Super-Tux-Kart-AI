@@ -8,7 +8,7 @@ from . import dense_transforms
 
 RESCUE_TIMEOUT = 30
 TRACK_OFFSET = 15
-DATASET_PATH = 'drive_data'
+DATASET_PATH = 'data\trainTest'
 
 
 class SuperTuxDataset(Dataset):
@@ -32,7 +32,7 @@ class SuperTuxDataset(Dataset):
         return data
 
 
-def load_data(dataset_path=DATASET_PATH, transform=dense_transforms.ToTensor(), num_workers=0, batch_size=128):
+def load_data(dataset_path=DATASET_PATH, transform=dense_transforms.ToTensor(), num_workers=4, batch_size=128):
     dataset = SuperTuxDataset(dataset_path, transform=transform)
     return DataLoader(dataset, num_workers=num_workers, batch_size=batch_size, shuffle=True, drop_last=True)
 

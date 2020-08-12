@@ -47,3 +47,8 @@ Explain your strategy here. Limit yourself to two pages, either markdown or pdf.
 # Training
 
 ![Tux, the Linux mascot](/assets/images/tux.png)
+
+
+# Future Ideas
+- second model to identify other players
+- third model to identify items

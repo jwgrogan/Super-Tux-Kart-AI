@@ -23,22 +23,39 @@ def get_vector_from_this_to_that(me, obj, normalize=True):
     return vector
 
 class HockeyPlayer:
+    """
+       Your ice hockey player. You may do whatever you want here. There are three rules:
+        1. no calls to the pystk library (your code will not run on the tournament system if you do)
+        2. There needs to be a deep network somewhere in the loop
+        3. You code must run in 100 ms / frame on a standard desktop CPU (no for testing GPU)
+        Try to minimize library dependencies, nothing that does not install through pip on linux.
+    """
+    """
+       You may request to play with a different kart.
+       Call `python3 -c "import pystk; pystk.init(pystk.GraphicsConfig.ld()); print(pystk.list_karts())"` to see all values.
+    """
     def __init__(self, player_id=0):
+        """
+        Set up a soccer player.
+        The player_id starts at 0 and increases by one for each player added. You can use the player id to figure out 
+        your team (player_id % 2), or assign different roles to different agents.
+
+        all_players = ['adiumy', 'amanda', 'beastie', 'emule', 'gavroche', 'gnu', 'hexley', 'kiki', 'konqi',
+                       'nolok', 'pidgin', 'puffy', 'sara_the_racer', 'sara_the_wizard', 'suzanne', 'tux', 'wilber', 'xue']
+        """
         # select kart
         self.kart = 'xue'
         # set up parameters
-        self.state = 'start'
+        self.state = 'kickoff'
         # self.states = {'kickoff': self.kickoff_action,
-        #                 'search': self.search_action,
+        #                 'reset': self.reset_action,
         #                 'attack': self.attack_action,
         #                 'stuck': self.stuck_action
         #                 }
         from collections import deque
         self.past_locs = deque(maxlen=10)
         self.past_actions = deque(maxlen=10)
-                    
-        self.team_goal = (0, -64)
-        self.opponent_goal = (0, 64)
+        
         # load model
         self.model = load_model().eval()
 
@@ -49,6 +66,12 @@ class HockeyPlayer:
             self.position = (player_id / 2) % 2
         else:
             self.position = (player_id - 1 / 2) % 2
+        
+        # assign offense and defense
+        if player_id // 2 == 0:
+            self.role = 'offense'
+        else:
+            self.role = 'defense'
 
     def to_numpy(self, location):
         """
@@ -70,7 +93,16 @@ class HockeyPlayer:
             return vector / np.linalg.norm(vector)
         return vector
 
-    def set_state(self, kart_loc):
+    def set_goal_loc(self, kart_loc):
+        z = kart_loc[-1]
+        if z < 0:
+            self.our_goal = (0, -64)
+            self.their_goal = (0, 64)
+        else:
+            self.our_goal = (0, 64)
+            self.their_goal = (0, -64)
+
+    def set_state(self, kart_loc, puck_loc):
         """
         set current state of the kart
         """
@@ -78,9 +110,9 @@ class HockeyPlayer:
             self.state = 'kickoff'
         elif self.stuck(kart_loc):
             self.state == 'stuck'
-        elif self.search(kart_loc) == True:
-            self.state = 'search'
-        else:
+        elif self.reset(kart_loc) == True:
+            self.state = 'reset'
+        elif self.attack_position(kart_loc, puck_loc) == True:
             self.state = 'attack'
         return self.state
     
@@ -100,7 +132,7 @@ class HockeyPlayer:
         return action
         
     def kickoff(self, kart_loc):
-        threshold = 5
+        threshold = 20
         for past_locs in reversed(self.past_locs):
             x_diff = abs(past_locs[0] - kart_loc[0])
             z_diff = abs(past_locs[-1] - kart_loc[-1])
@@ -113,29 +145,73 @@ class HockeyPlayer:
         action['nitro'] = True
         return action
 
-    def search(self, kart_loc):
-        if self.kickoff(kart_loc) == False:
+    def reset(self, kart_loc):
+        x = kart_loc[0]
+        y = kart_loc[-1]
+        if x == 0 or x == 2 or y == 0 or y == 2:
             return True
         return False
 
-    def search_action(self, x, y, action):
-        if x == 0 or x == 2 or y == 0 or y == 2:
-            action['brake'] = True
-            action['acceleration'] = 0
+    def reset_action(self, action):
+        action['brake'] = True
+        action['acceleration'] = 0
+        return action   
+
+    def attack_position(self, kart_loc, puck_loc):
+        kart_to_their_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
+        puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
+
+        if abs(kart_to_their_goal) > abs(puck_to_their_goal):
+            return True
         else:
-            if x > .3 or x < -.3:
+            return False
+
+    def attack_action(self, kart_loc, kart_front, puck_loc, x, action):
+        action['steer'] = 0 #aim towards center
+        kart_to_puck = np.linalg.norm(kart_loc - puck_loc)
+
+        vector_of_kart = get_vector_from_this_to_that(kart_loc, kart_front)
+        vector_to_goal = get_vector_from_this_to_that(kart_loc, self.their_goal)
+        vector_to_puck = get_vector_from_this_to_that(kart_loc, puck_loc)
+
+
+        # x = puck_loc[0]
+        if x > .3 or x < -.3:
                 action['steer'] = np.sign(x) * 1
-                print("STEEEEERR", action['steer'])
-            else:
-                action['steer'] = 0
-            if x > .5 or x < -.5:
-                action['drift'] = True
-                action['acceleration'] = .5
-            else:
-                action['drift'] = False
+        else:
+            action['steer'] = 0
+        if x > .4 or x < -.4:
+            action['steer'] = np.sign(x) * 1
+            action['drift'] = True
+            action['acceleration'] = .5
+        else:
+            action['drift'] = False
         return action
 
-    
+    def defense_position(self, kart_loc, puck_loc):
+        kart_to_our_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
+        puck_to_our_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
+
+        if abs(kart_to_our_goal) < abs(puck_to_our_goal):
+            return True
+        else:
+            return False
+
+    def defense_action(self, puck_loc, action):
+        x = puck_loc[0]
+        if x > .3 or x < -.3:
+                action['steer'] = np.sign(x) * 1
+        else:
+            action['steer'] = 0
+        if x > .4 or x < -.4:
+            action['steer'] = np.sign(x) * 1
+            action['drift'] = True
+            action['acceleration'] = .5
+        else:
+            action['drift'] = False
+        return action
+
+
     def act(self, image, player_info):
         """
         Set the action given the current image
@@ -146,10 +222,10 @@ class HockeyPlayer:
         action = {'acceleration': 1, 'brake': False, 'drift': False, 'nitro': False, 'rescue': False, 'steer': 0}
         # Puck Information
         image_transform = F.to_tensor(image)[None]
-        puck_location = (self.model(image_transform).detach().cpu().numpy())[0]
+        puck_loc = (self.model(image_transform).detach().cpu().numpy())[0]
         # print("Puck Location", puck_location)
-        x = puck_location[0]
-        y = puck_location[1]
+        x = puck_loc[0]
+        y = puck_loc[1]
 
         x_middle = 0
         # Kart Information
@@ -158,17 +234,23 @@ class HockeyPlayer:
         kart_velocity = player_info.kart.velocity
         kart_attachment = player_info.kart.attachment.type
         kart_powerup = player_info.kart.powerup.type
-        
+        # goal location
+        self.set_goal_loc(kart_loc)
+
+        # action['acceleration'] = .5
+        # action['steer'] = np.sign(x) * 1
+
         # set kart state
-        self.state = self.set_state(kart_loc)
+        self.state = self.set_state(kart_loc, puck_loc)
+        print(self.state)
         if self.state == 'kickoff':
             action = self.kickoff_action(action)
+        elif self.state == 'attack':
+            action = self.attack_action(kart_loc, kart_front, puck_loc, x, action)
+        elif self.state == 'reset':
+            action = self.reset_action(action)
         elif self.state == 'stuck':
             action = self.stuck_action(x, action)
-        elif self.state == 'search':
-            action = self.search_action(x, y, action)
-        # elif self.state == 'attack':
-        #     action = self.attack_action(action)
         
         self.past_locs.append(kart_loc)
         self.past_actions.append(action)
@@ -176,7 +258,7 @@ class HockeyPlayer:
         # self.teammate_has_puck = False
         # self.step = 0
 
-        return action, puck_location
+        return action, puck_loc
         
         
         

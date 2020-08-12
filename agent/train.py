@@ -35,15 +35,17 @@ def train(args):
     params_logger.add_text('kernel', str(args.kernel))
     # params_logger.add_text('patience', str(args.patience))
 
-
+    
+    # Define model stuff
+    # layers = [16, 32, 64, 128]
+    # params_logger.add_text('layers', str(layers))
+    # model = PuckDetector(layers=layers).to(device)
+    model = PuckDetector().to(device)
+    
     # Define Loss
+    optimizer = torch.optim.Adam(model.parameters(), lr=rate, weight_decay=1e-5)
     loss = torch.nn.MSELoss()
     # loss = torch.nn.BCEWithLogitsLoss()
-    # Define model stuff
-    layers = [16, 32, 64, 128]
-    params_logger.add_text('layers', str(layers))
-    model = PuckDetector(layers=layers).to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=rate)
 
 
     # load the data
@@ -54,14 +56,13 @@ def train(args):
                                            dense_transforms.RandomHorizontalFlip(),
                                            dense_transforms.ToTensor()])                                           
 
-    train_data = load_data(args.trainPath, batch_size=64, transform=transform)
+    train_data = load_data(args.trainPath, batch_size=32, transform=transform)
 
     # run training epochs
     global_step = 0
     print("Setup Complete, starting to train on {epoch} epochs!".format(epoch=epoch))
     for epoch in range(epoch):
         print('======================= training epoch', epoch, '=======================')
-        
         model.train()
         for img, label in tqdm(train_data):
             img, label = img.to(device), label.to(device)
@@ -102,10 +103,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', default=r'tmpLogs')
     parser.add_argument('--run', default='6')
-    parser.add_argument('-e', '--epoch', default=10)
+    parser.add_argument('-e', '--epoch', default=20)
 
     # Put custom arguments here
-    parser.add_argument('-t', '--trainPath', default=r'data/train')
+    parser.add_argument('-t', '--trainPath', default=r'data\trainTest')
     parser.add_argument('-l', '--lrate', default=0.01)
     parser.add_argument('--kernel', default=3)
 
