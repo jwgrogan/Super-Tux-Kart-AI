@@ -1,0 +1,7 @@
+2020.08.12 19:32:45 INFO  started: Metals version 0.9.2 in workspace 'C:\Users\jagrogan\OneDrive - Microsoft\projects\SuperTuxKartAI-dl-su20' for client vscode.
+2020.08.12 19:32:48 INFO  time: initialize in 2.73s
+2020.08.12 19:32:49 WARN  no build tool detected in workspace 'C:\Users\jagrogan\OneDrive - Microsoft\projects\SuperTuxKartAI-dl-su20'. The most common cause for this problem is that the editor was opened in the wrong working directory, for example if you use sbt then the workspace directory should contain build.sbt. 
+Aug 12, 2020 7:33:20 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
+Aug 12, 2020 7:33:54 PM org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint notify
+INFO: Unsupported notification method: $/setTraceNotification
