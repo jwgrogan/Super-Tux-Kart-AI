@@ -110,13 +110,13 @@ def train(args):
 
     
     # Define model stuff
-    # layers = [16, 32, 64, 128]
-    # params_logger.add_text('layers', str(layers))
-    # model = PuckDetector(layers=layers).to(device)
-    model = PuckDetector().to(device)
+    layers = [16, 32, 64, 128]
+    params_logger.add_text('layers', str(layers))
+    model = PuckDetector(layers=layers).to(device)
+    # model = PuckDetector().to(device)
     
     # Define Loss
-
+    optimizer = torch.optim.Adam(model.parameters(), lr=rate, weight_decay=1e-5)
     if args.loss == "mse":
         print("mse loss is going to be used")
         loss = torch.nn.MSELoss()
@@ -169,6 +169,9 @@ def train(args):
             optimizer.step()
             global_step += 1
 
+        model.eval()
+        save_model(model)
+
     model.eval()
     save_model(model)
     # print("Model shape", type(model))
@@ -183,8 +186,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', default=r'tmpLogs')
-    parser.add_argument('--run', default='40')
-    parser.add_argument('-e', '--epoch', default=50)
+    parser.add_argument('--run', default='41')
+    parser.add_argument('-e', '--epoch', default=20)
 
     # Put custom arguments here
     parser.add_argument('-t', '--trainPath', default=r'data/train')

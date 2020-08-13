@@ -42,7 +42,7 @@ class PuckDetector(torch.nn.Module):
         def forward(self, x):
             return F.relu(self.c1(x))
 
-    def __init__(self, layers=[32, 64, 64, 128], n_output_channels=1, kernel_size=3, use_skip=True):
+    def __init__(self, layers=[16, 32, 64, 128], n_output_channels=1, kernel_size=3, use_skip=True):
         super().__init__()
 
         self.input_mean = torch.Tensor([0.3521554, 0.30068502, 0.28527516])
@@ -102,14 +102,14 @@ def save_model(model):
     from torch import save
     from os import path
     if isinstance(model, PuckDetector):
-        return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'MSE30AllPics.th'))
+        return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'MSE.th'))
     raise ValueError("model type '%s' not supported!" % str(type(model)))
 
 def load_model():
     from torch import load
     from os import path
     r = PuckDetector()
-    print("looooad model")
+    # print("looooad model")
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L1_28.th'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE29'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L131AllPics.th'), map_location='cpu'))

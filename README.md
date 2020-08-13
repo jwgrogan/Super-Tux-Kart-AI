@@ -28,7 +28,7 @@ TLDR:
 
 1. Run 
 ```
-python -m tournament.gen_train_data random_agent random_agent random_agent random_agent -s data\train -f 1600
+python -m tournament.gen_train_data random_agent AI random_agent AI -s data\train -f 1600
 ```
 
 **Note** There's a lot of different ways to do this but couple of tips to follow.

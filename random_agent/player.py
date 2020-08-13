@@ -22,7 +22,7 @@ class HockeyPlayer:
         Set up a soccer player.
         The player_id starts at 0 and increases by one for each player added. You can use the player id to figure out your team (player_id % 2), or assign different roles to different agents.
         """
-        all_players = ['adiumy', 'amanda', 'beastie', 'emule', 'gavroche', 'gnu', 'hexley', 'kiki', 'konqi', 'nolok', 'pidgin', 'puffy', 'sara_the_racer', 'sara_the_wizard', 'suzanne', 'tux', 'wilber', 'xue']
+        all_players = ['adiumy', 'amanda', 'beastie', 'emule', 'gavroche', 'hexley', 'kiki', 'konqi', 'nolok', 'pidgin', 'puffy', 'sara_the_racer', 'sara_the_wizard', 'suzanne', 'tux', 'wilber', 'xue']
         self.kart = all_players[np.random.choice(len(all_players))]
     
     def act(self, image, player_info):

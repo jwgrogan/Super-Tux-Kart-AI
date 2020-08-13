@@ -11,7 +11,7 @@ class Player:
     @property
     def config(self):
         return pystk.PlayerConfig(controller=pystk.PlayerConfig.Controller.PLAYER_CONTROL, kart=self.player.kart, team=self.team)
-    
+
     def __call__(self, image, player_info):
         return self.player.act(image, player_info)
 
@@ -55,13 +55,13 @@ class Tournament:
 
         self.race_config = pystk.RaceConfig(num_kart=len(players), track=track, mode=pystk.RaceConfig.RaceMode.SOCCER, difficulty=2)
         self.race_config.players.pop()
-        
+
         self.active_players = []
         for p in players:
             if p is not None:
                 self.race_config.players.append(p.config)
                 self.active_players.append(p)
-        
+
         self.k = pystk.Race(self.race_config)
 
         self.k.start()
@@ -90,10 +90,13 @@ class Tournament:
                 player = state.players[i]
                 image = np.array(self.k.render_data[i].image)
                 action = pystk.Action()
-                player_action, guess_coord = p(image, player)
+                if (i % 2 == 0):
+                    player_action, guess_coord = p(image, player)
+                else:
+                    player_action = p(image, player)
                 for a in player_action:
                     setattr(action, a, player_action[a])
-                
+
                 list_actions.append(action)
 
                 ball_coords = self.to_numpy(state.soccer.ball.location)
@@ -124,9 +127,10 @@ class Tournament:
                     ax.add_artist(
                         plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=False,
                                    lw=1.5))
-                    ax.add_artist(
-                        plt.Circle(WH2 * (1 + guess_coord), 2, ec='g', fill=False,
-                                   lw=1.5))
+                    if(i % 2 == 0):
+                        ax.add_artist(
+                            plt.Circle(WH2 * (1 + guess_coord), 2, ec='g', fill=False,
+                                       lw=1.5))
                     plt.pause(1e-3)
                 # TODO: END
             s = self.k.step(list_actions)
