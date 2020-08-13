@@ -1,6 +1,7 @@
 import pystk
 import numpy as np
 import csv
+from tqdm import tqdm
 
 
 class Player:
@@ -80,8 +81,11 @@ class Tournament:
       import os
       if not os.path.exists(save):
         os.makedirs(save)
-    for t in range(max_frames):
-      print('\rframe %d' % t, end='\r')
+
+    player_last_state = np.empty([len(self.active_players), 2])
+
+    for t in tqdm(range(max_frames)):
+      # print('\rframe %d' % t, end='\r')
 
       state.update()
 
@@ -89,6 +93,7 @@ class Tournament:
       for i, p in enumerate(self.active_players):
         player = state.players[i]
         image = np.array(self.k.render_data[i].image)
+        label = self.k.render_data[i].instance
 
         action = pystk.Action()
         player_action = p(image, player)
@@ -98,17 +103,24 @@ class Tournament:
         list_actions.append(action)
 
         if save is not None:
-          # print("porque")
-          PIL.Image.fromarray(image).save(os.path.join(save, 'player%02d_%05d.png' % (i, t)))
-          ball_coords = self.to_numpy(state.soccer.ball.location)
-          kart_proj = np.array(state.players[i].camera.projection).T
-          kart_view = np.array(state.players[i].camera.view).T
-          kart_ball_coords = self._to_image(ball_coords, kart_proj, kart_view)
-          # np.savez(os.path.join(save, ('ball%02d' % i)), kart_ball_view)
-          with open(save + '/player%02d_%05d.csv'% (i, t), mode='w') as ball_file:
-            ball_writer = csv.writer(ball_file, delimiter=',')
-            ball_writer.writerow(kart_ball_coords)
+          # if (134217729 in label):
+            # print("SHAPPPEEEEEE \dab", image.shape)
+            player = i+6
+            PIL.Image.fromarray(image).crop((0,50,image.shape[1], image.shape[0]-100)).save(os.path.join(save, 'player%02d_%05d.png' % (player, t)))
+            ball_coords = self.to_numpy(state.soccer.ball.location)
+            kart_proj = np.array(state.players[i].camera.projection).T
+            kart_view = np.array(state.players[i].camera.view).T
+            kart_ball_coords = self._to_image(ball_coords, kart_proj, kart_view)
+            # np.savez(os.path.join(save, ('ball%02d' % i)), kart_ball_view)
+            with open(save + '/player%02d_%05d.csv'% (player, t), mode='w') as ball_file:
+                # ball_file.write('%0.1f,%0.1f' % tuple(kart_ball_coords))
+              if (134217729 not in label):
+                # print("before", player_last_state[i])
+                kart_ball_coords[0] = -1.0
+                kart_ball_coords[1] = -1.0
+              ball_file.write('%0.1f,%0.1f' % tuple(kart_ball_coords))
 
+        player_last_state[i] = kart_ball_coords
         if verbose:
           ax.clear()
           ax.imshow(self.k.render_data[0].image)
@@ -118,7 +130,9 @@ class Tournament:
             plt.Circle(WH2 * (1 + self._to_image(state.players[i].kart.location, kart_proj, kart_view)), 2, ec='b', fill=False, lw=1.5))
           # red circle on puck
           ax.add_artist(
-            plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=False, lw=1.5))
+            plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=True, lw=1.5))
+          ax.add_artist(
+            plt.Circle(WH2 * (1 + kart_ball_coords), 2, ec='m', fill=False, lw=1.5))
           # green circle on items
           for j, item in enumerate(state.items):
             ax.add_artist(
@@ -129,7 +143,6 @@ class Tournament:
               ax.add_artist(
                 plt.Circle(WH2 * (1 + self._to_image(state.players[j].kart.location, kart_proj, kart_view)), 2, ec='y', fill=False, lw=1.5))
           plt.pause(1e-3)
-          
 
       s = self.k.step(list_actions)
       if not s:  # Game over
