@@ -53,6 +53,8 @@ class HockeyPlayer:
         self.past_actions = deque(maxlen=10)
         self.state_lock = False
         self.state_lock_turns = 0
+        self.current_vel = 0
+        self.target_vel = 30
         # load model
         self.model = load_model().eval()
 
@@ -79,6 +81,7 @@ class HockeyPlayer:
         """
         print('======================================== frame start ======================================')
         action = {'acceleration': 1, 'brake': False, 'drift': False, 'nitro': False, 'rescue': False, 'steer': 0}
+        self.current_vel = np.linalg.norm(player_info.kart.velocity)
         if len(self.past_actions) > 0:
             action = self.past_actions[-1]
         # Puck Information
@@ -287,16 +290,14 @@ class HockeyPlayer:
 
     # ============================================= in_goal logic ============================================= 
     def inGoal(self, kart_loc):
-        if ((kart_loc[1] > 66) or (kart_loc[1] < -66)):
+        if ((kart_loc[1] > 64) or (kart_loc[1] < -64)):
             self.state_lock = True
             self.state_lock_turns = 10
             return True
         else:
             return False
 
-    def getOutOfGoal(self, kart_loc, action, playerinfo):
-        past_action = self.past_actions[0]
-        distance_moved = abs(kart_loc[1]) - abs(self.past_kart_locs[0][1])
+    def getOutOfGoal(self, action):
         # In the Blue goal
         if(self.kart_loc[1] > 0):
         # If facing backwards, go backwards
@@ -318,7 +319,7 @@ class HockeyPlayer:
         # In the Red goal
         if (self.kart_loc[1] < 0):
         # If facing backwards, go backwards
-            if (self.kart_front[1] - self.kart_loc[1] > .3):
+            if abs(self.kart_front[1] - self.kart_loc[1]) > .3:
                     action['acceleration'] = 0
                     action['brake'] = True
             if (self.kart_loc[0] < 0):
@@ -336,32 +337,16 @@ class HockeyPlayer:
 
         return action
 
-        # # print('distance moved', distance_moved)
-        # # print('perspective?', self.image_to_local(0,0,playerinfo))
-        # # Check to make sure kart is facing the outside of the goal.
-        # if distance_moved < 0:
-        #   return past_action
-        # # Otherwise change up how you move. Ideally want to make a K turn out
-        # else:
-        #   action['brake'] = not past_action['brake']
-
-        #   if past_action['acceleration'] > 0:
-        #     action['acceleration'] = 0
-        #   else:
-        #     action['acceleration'] = 1
-
-        #   if (past_action['steer'] > 0):
-        #     action['steer'] = -1
-        #   else:
-        #     action['steer'] = 1
-
-        #   return action
-
 
     # ============================================= stuck logic =============================================
     def stuck(self, kart_loc):
-        if ((abs(kart_loc - self.past_kart_locs[-1]) < 0.5).all()):
+        print("locations", kart_loc, self.past_kart_locs[-1])
+        print("Difference", abs(kart_loc - self.past_kart_locs[-1]))
+        if ((abs(kart_loc - self.past_kart_locs[-1]) < 0.01).all()):
             self.state_lock = True
+            if self.current_vel > 10.0 and self.past_actions[-1]['acceleration'] > 0:
+              self.state_lock_turns = 5
+            else:
             self.state_lock_turns = 3
             return True
         else:
