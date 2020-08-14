@@ -48,10 +48,10 @@ class HockeyPlayer:
         #                 'stuck': self.stuck_action
         #                 }
         from collections import deque
-        self.past_kart_locs = deque(maxlen=7)
-        self.past_puck_locs = deque(maxlen=7)
-        self.past_state = deque(maxlen=7)
-        self.past_actions = deque(maxlen=7)
+        self.past_kart_locs = deque(maxlen=5)
+        self.past_puck_locs = deque(maxlen=5)
+        self.past_state = deque(maxlen=5)
+        self.past_actions = deque(maxlen=5)
         self.state_lock = False
         self.state_lock_turns = 0
         self.current_vel = 0
@@ -240,14 +240,14 @@ class HockeyPlayer:
             self.their_goal = (0, -64)
 
     def puck_lost(self, puck_loc):
-        threshold = -.7
+        threshold = -.8
         checker = 0
-        if puck_loc[0] < threshold or puck_loc[-1] < threshold:
+        if puck_loc[0] < threshold and puck_loc[-1] < threshold:
             checker += 1
         for past_puck in reversed(self.past_puck_locs):
-            if past_puck[0] < threshold or past_puck[-1] < threshold:
+            if past_puck[0] < threshold and past_puck[-1] < threshold:
                 checker += 1
-        if checker / (len(self.past_puck_locs) + 1) > 0.6:
+        if checker / (len(self.past_puck_locs) + 1) >= 0.8:
             print('puck lost true', checker)
             return True
         else:
@@ -326,8 +326,8 @@ class HockeyPlayer:
             action['steer'] = -.4 * steer_dir
         elif x < -3:
             action['steer'] = .4 * steer_dir
-        if abs(y) < 20 and x < .05 and x > -.05:
-            action['nitro'] = True
+        # if abs(y) < 20 and x < .05 and x > -.05:
+        #     action['nitro'] = True
 
         return action
 
@@ -476,99 +476,142 @@ class HockeyPlayer:
     #     if result[0] and result[1] and result[2]:
     #         return True
     #     return False
+
     def searching_action(self, kart_loc, kart_front, action):
         # Flip a bitch and zoom
         # Check quadrants
         kart_x = kart_loc[0]
         kart_y = kart_loc[1]
+        front_x = kart_front[0]
+        front_y = kart_front[1]
+        # Check walls
+        # Check X walls
+        if abs(front_x) > 63:
+            # On top
+            if front_y > 0:
+                # If on positive X, turns right; else, turns left
+                action['steer'] = np.sign(front_x) * 1
+                action['drift'] = True
+                action['acceleration'] = .3
+            # On bottom
+            else:
+                # If on positive X, turns left; else, turns right
+                action['steer'] = np.sign(front_x) * -1
+                action['drift'] = True
+                action['acceleration'] = .3
+        # Check Y walls
+        if abs(front_y) > 43:
+            # On right
+            if front_x > 0:
+                # If on positive Y, turns left; else, turns right
+                action['steer'] = np.sign(front_x) * -1
+                action['drift'] = True
+                action['acceleration'] = .3
+            # On left
+            else:
+                # If on positive X, turns right; else, turns left
+                action['steer'] = np.sign(front_x) * 1
+                action['drift'] = True
+                action['acceleration'] = .3
         # bottom-left
         if kart_x < 0 and kart_y < 0:
-            facing = (kart_front[0] - kart_loc[0]) > 0
-            # Facing positive
-            if facing:
-                action['steer'] = .3
-                action['drift'] = False
+            if front_x > kart_x and front_y > kart_y:
                 action['acceleration'] = 1
-            # Facing negative
+                action['steer'] = 0
+                action['drift'] = False
             else:
                 action['steer'] = 1
                 action['drift'] = True
-                action['acceleration'] = .5
+                action['acceleration'] = .3
         # top-left
-        elif kart_x < 0:
-            facing = (kart_front[0] - kart_loc[0]) > 0
-            # Facing positive
-            if facing:
-                action['steer'] = -.3
-                action['drift'] = False
+        elif kart_x < 0:          
+            if front_x > kart_x and front_y < kart_y:
                 action['acceleration'] = 1
-            # Facing negative
+                action['steer'] = 0
+                action['drift'] = False
             else:
                 action['steer'] = -1
                 action['drift'] = True
-                action['acceleration'] = .5
+                action['acceleration'] = .3          
         # bottom-right
         elif kart_x > 0 and kart_y < 0:
-            facing = (kart_front[0] - kart_loc[0]) > 0
-            # Facing positive
-            if facing:
+            if front_x < kart_x and front_y > kart_y:
+                action['acceleration'] = 1
+                action['steer'] = 0
+                action['drift'] = False
+            else:
                 action['steer'] = -1
                 action['drift'] = True
-                action['acceleration'] = .5
-            # Facing negative
-            else:
-                action['steer'] = -.3
-                action['drift'] = False
-                action['acceleration'] = 1
+                action['acceleration'] = .3
         # top-right
         else:
-            facing = (kart_front[0] - kart_loc[0]) > 0
-            # Facing positive
-            if facing:
+            if front_x < kart_x and front_y < kart_y:
+                action['acceleration'] = 1
+                action['steer'] = 0
+                action['drift'] = False
+            else:
                 action['steer'] = 1
                 action['drift'] = True
-                action['acceleration'] = .5
-            # Facing negative
-            else:
-                action['steer'] = .3
-                action['drift'] = False
-                action['acceleration'] = 1
+                action['acceleration'] = .3
         return action
-
-        # # Flip a bitch and zoom
-        # if self.search_timer > 0 and self.search_timer < 10:
-        #     action['steer'] = self.past_actions[-1]['steer']
-        #     action['acceleration'] = self.past_actions[-1]['acceleration']
-        #     action['drift'] = True
-        # else:
-        #     turn_left = 0
-        #     turn_right = 0
-        #     for past_puck in reversed(self.past_puck_locs):
-        #         if past_puck[0] < 0:
-        #             turn_left += 1
-        #         else:
-        #             turn_right += 1
-            
-        #     if turn_left > turn_right: # turn left
-        #         action['steer'] = -1
-        #         action['acceleration'] = 1
-        #         action['drift'] = True
-        #     else: # turn right
-        #         action['steer'] = 1
-        #         action['acceleration'] = 1
-        #         action['drift'] = True
-        
-        # return action
-        
-        # # if self.state_lock_turns == 1:
-        # #     action['drift'] = False
-        # #     action['steer'] = 0
-        # #     action['acceleration'] = 1
-        # # else:
-        # #     action['acceleration'] = .5
-        # #     action['steer'] = 1
-        # #     action['drift'] = True
-        # # return action
+    # def searching_action(self, kart_loc, kart_front, action):
+    #     # Flip a bitch and zoom
+    #     # Check quadrants
+    #     kart_x = kart_loc[0]
+    #     kart_y = kart_loc[1]
+    #     # bottom-left
+    #     if kart_x < 0 and kart_y < 0:
+    #         facing = (kart_front[0] - kart_loc[0]) > 0
+    #         # Facing positive
+    #         if facing:
+    #             action['steer'] = .3
+    #             action['drift'] = False
+    #             action['acceleration'] = 1
+    #         # Facing negative
+    #         else:
+    #             action['steer'] = 1
+    #             action['drift'] = True
+    #             action['acceleration'] = .5
+    #     # top-left
+    #     elif kart_x < 0:
+    #         facing = (kart_front[0] - kart_loc[0]) > 0
+    #         # Facing positive
+    #         if facing:
+    #             action['steer'] = -.3
+    #             action['drift'] = False
+    #             action['acceleration'] = 1
+    #         # Facing negative
+    #         else:
+    #             action['steer'] = -1
+    #             action['drift'] = True
+    #             action['acceleration'] = .5
+    #     # bottom-right
+    #     elif kart_x > 0 and kart_y < 0:
+    #         facing = (kart_front[0] - kart_loc[0]) > 0
+    #         # Facing positive
+    #         if facing:
+    #             action['steer'] = -1
+    #             action['drift'] = True
+    #             action['acceleration'] = .5
+    #         # Facing negative
+    #         else:
+    #             action['steer'] = -.3
+    #             action['drift'] = False
+    #             action['acceleration'] = 1
+    #     # top-right
+    #     else:
+    #         facing = (kart_front[0] - kart_loc[0]) > 0
+    #         # Facing positive
+    #         if facing:
+    #             action['steer'] = 1
+    #             action['drift'] = True
+    #             action['acceleration'] = .5
+    #         # Facing negative
+    #         else:
+    #             action['steer'] = .3
+    #             action['drift'] = False
+    #             action['acceleration'] = 1
+    #     return action
 
     # ============================================= attack logic =============================================
     def attack(self, kart_loc, puck_loc):
@@ -581,34 +624,37 @@ class HockeyPlayer:
         vector_to_goal = self.get_vector_from_this_to_that(kart_loc, self.their_goal)
      
         x = puck_loc[0]
-        print('attack x:', x)
-        action = {'acceleration': .75, 'steer': x, 'brake': False}
-
+        action = {'acceleration': 1, 'steer': x, 'brake': False}
         steer_dir = self.get_orientation(kart_loc, kart_front)
-        if x < 0.05 or x > -0.05: # hammer it home!
+
+        if x < 0.05 and x > -0.05: # hammer it home!
             print('1')
-            # action['steer'] = np.sign(np.cross(vector_to_goal, vector_of_kart)) * steer_dir
+            # action['steer'] = np.sign(np.cross(vector_to_goal, vector_of_kart))
             action['steer'] = x * steer_dir
             action['acceleration'] = 1
             action['nitro'] = True
-        elif x > 0.05:
+        elif x > 0.05 and x < .4:
             print('2')
             action['steer'] = .75 * steer_dir
-            action['acceleration'] = .25
-        elif x < -0.05:
+            # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
+            action['acceleration'] = .75
+        elif x < -0.05 and x > -.4:
             print('3')
             action['steer'] = -.75 * steer_dir
-            action['acceleration'] = .25
+            # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
+            action['acceleration'] = .75
         elif x > 0.4:
             print('4')
             action['steer'] = 1 * steer_dir
+            # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
             action['drift'] = True
-            action['acceleration'] = .25
+            action['acceleration'] = .5
         elif x < -0.4:
             print('5')
             action['steer'] = -1 * steer_dir
+            # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
             action['drift'] = True
-            action['acceleration'] = .25
+            action['acceleration'] = .5
         
         return action
 
