@@ -278,7 +278,7 @@ class HockeyPlayer:
         """
         boost towards center to find puck
         """
-        action = {'acceleration': 1, 'steer': 0, 'brake': False}
+        action = {'acceleration': 1, 'steer': 0, 'brake': False, 'nitro': True}
         x = kart_loc[0]
         if abs(x) > 10:
             action['acceleration'] = 0.5
