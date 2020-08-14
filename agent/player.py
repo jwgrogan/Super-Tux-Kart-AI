@@ -97,6 +97,9 @@ class HockeyPlayer:
         # self.puck_loc = np.float32(self.image_to_local(x, y, player_info))
         # print('puck world loc:', self.puck_loc)
 
+        # add class variables
+        self.search_timer = 0
+
 
         x_middle = 0
         # Kart Information
@@ -129,7 +132,7 @@ class HockeyPlayer:
         # elif self.state == 'positioning':
         #     action = self.positioning_action(self.kart_loc, self.kart_front, self.puck_loc, action)
         elif self.state == 'searching':
-            action = self.searching_action(action)
+            action = self.searching_action(self.kart_loc, self.kart_front, action)
         elif self.state == 'stuck':
             action = self.stuck_action(self.kart_loc, action)
 
@@ -235,12 +238,12 @@ class HockeyPlayer:
             self.their_goal = (0, -64)
 
     def puck_lost(self, puck_loc):
-        threshold = .5
+        threshold = -.7
         checker = 0
-        if abs(puck_loc[0]) > threshold or abs(puck_loc[-1]) > threshold:
+        if puck_loc[0] > threshold or puck_loc[-1] > threshold:
             checker += 1
         for past_puck in reversed(self.past_puck_locs):
-            if abs(past_puck[0]) > threshold or abs(past_puck[-1]) > threshold:
+            if past_puck[0] > threshold or past_puck[-1] > threshold:
                 checker += 1
         if checker / (len(self.past_puck_locs) + 1) > 0.6:
             print('puck lost true', checker)
@@ -287,12 +290,13 @@ class HockeyPlayer:
     
         if self.state == 'kickoff' and self.kickoff_timer < 30:
             return 'kickoff'
-    
+
         if self.stuck(kart_loc) == True:
             return 'stuck'
         elif self.inGoal(kart_loc) == True:
             return 'in_goal'
         elif self.searching(puck_loc) == True:
+            self.search_timer += 1
             return 'searching'
         # elif self.positioning(kart_loc, puck_loc) == True:
         #     return 'positioning'
@@ -317,11 +321,12 @@ class HockeyPlayer:
         x = kart_loc[0]
         y = kart_loc[-1]
         if x > 3:
-            action['steer'] = -.5 * steer_dir
+            action['steer'] = -.4 * steer_dir
         elif x < -3:
-            action['steer'] = .5 * steer_dir
+            action['steer'] = .4 * steer_dir
         if abs(y) < 20:
-            action['acceleration'] = 0.5
+            action['nitro'] = True
+
         return action
 
 
@@ -448,67 +453,126 @@ class HockeyPlayer:
     # ============================================= searching logic =============================================
     def searching(self, puck_loc):
         return self.puck_lost(puck_loc)
-        # result = []
-        # # Go from 1-3
-        # for i in range(1, 4):
-        #     # To have -1, -2, -3
-        #     negative = -1 * i
-        #     last_puck = past_pucks[negative]
-        #     last_x = last_puck[0]
-        #     last_y = last_puck[1]
-        #     current_x = puck_loc[0]
-        #     current_y = puck_loc[1]
-        #     # May need to change .5
-        #     if (abs(last_x - current_x) > .5) and (abs(last_y - current_y) > .5):
-        #         result.append(True)
-        #     else:
-        #         result.append(False)
-        # # If all are true
-        # if result[0] and result[1] and result[2]:
-        #     self.state_lock = True
-        #     self.state_lock_turns = 3
-        #     return True
-        # return False
 
-    def searching_action(self, action):
+    # def searching_action(self, action):
+    #     result = []
+    #     # Go from 1-3
+    #     for i in range(1, 4):
+    #         # To have -1, -2, -3
+    #         negative = -1 * i
+    #         last_puck = self.past_puck_locs[negative]
+    #         last_x = last_puck[0]
+    #         last_y = last_puck[1]
+    #         current_x = puck_loc[0]
+    #         current_y = puck_loc[1]
+    #         # May need to change .5
+    #         if (abs(last_x - current_x) > .5) or (abs(last_y - current_y) > .5):
+    #             result.append(True)
+    #         else:
+    #             result.append(False)
+    #     # If all are true
+    #     if result[0] and result[1] and result[2]:
+    #         return True
+    #     return False
+    def searching_action(self, kart_loc, kart_front, action):
         # Flip a bitch and zoom
-        if self.state_lock_turns == 1:
-            action['drift'] = False
-            action['steer'] = 0
-            action['acceleration'] = 1
+        # Check quadrants
+        kart_x = kart_loc[0]
+        kart_y = kart_loc[1]
+        # bottom-left
+        if kart_x < 0 and kart_y < 0:
+            facing = (kart_front[0] - kart_loc[0]) > 0
+            # Facing positive
+            if facing:
+                action['steer'] = .3
+                action['drift'] = False
+                action['acceleration'] = 1
+            # Facing negative
+            else:
+                action['steer'] = 1
+                action['drift'] = True
+                action['acceleration'] = .5
+        # top-left
+        elif kart_x < 0:
+            facing = (kart_front[0] - kart_loc[0]) > 0
+            # Facing positive
+            if facing:
+                action['steer'] = -.3
+                action['drift'] = False
+                action['acceleration'] = 1
+            # Facing negative
+            else:
+                action['steer'] = -1
+                action['drift'] = True
+                action['acceleration'] = .5
+        # bottom-right
+        elif kart_x > 0 and kart_y < 0:
+            facing = (kart_front[0] - kart_loc[0]) > 0
+            # Facing positive
+            if facing:
+                action['steer'] = -1
+                action['drift'] = True
+                action['acceleration'] = .5
+            # Facing negative
+            else:
+                action['steer'] = -.3
+                action['drift'] = False
+                action['acceleration'] = 1
+        # top-right
         else:
-            action['acceleration'] = .5
-            action['steer'] = 1
-            action['drift'] = True
+            facing = (kart_front[0] - kart_loc[0]) > 0
+            # Facing positive
+            if facing:
+                action['steer'] = 1
+                action['drift'] = True
+                action['acceleration'] = .5
+            # Facing negative
+            else:
+                action['steer'] = .3
+                action['drift'] = False
+                action['acceleration'] = 1
         return action
+
+        # # Flip a bitch and zoom
+        # if self.search_timer > 0 and self.search_timer < 10:
+        #     action['steer'] = self.past_actions[-1]['steer']
+        #     action['acceleration'] = self.past_actions[-1]['acceleration']
+        #     action['drift'] = True
+        # else:
+        #     turn_left = 0
+        #     turn_right = 0
+        #     for past_puck in reversed(self.past_puck_locs):
+        #         if past_puck[0] < 0:
+        #             turn_left += 1
+        #         else:
+        #             turn_right += 1
+            
+        #     if turn_left > turn_right: # turn left
+        #         action['steer'] = -1
+        #         action['acceleration'] = 1
+        #         action['drift'] = True
+        #     else: # turn right
+        #         action['steer'] = 1
+        #         action['acceleration'] = 1
+        #         action['drift'] = True
+        
+        # return action
+        
+        # # if self.state_lock_turns == 1:
+        # #     action['drift'] = False
+        # #     action['steer'] = 0
+        # #     action['acceleration'] = 1
+        # # else:
+        # #     action['acceleration'] = .5
+        # #     action['steer'] = 1
+        # #     action['drift'] = True
+        # # return action
 
     # ============================================= attack logic =============================================
     def attack(self, kart_loc, puck_loc):
         if self.puck_lost(puck_loc) == False:
             return True
         return True
-
-
-    #     # distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
-    #     # kart_to_their_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
-    #     # puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
-    #     threshold = 0.1
-    #     for past_puck in reversed(self.past_puck_locs):
-    #         x_diff = abs(past_puck[0] - puck_loc[0])
-    #         y_diff = abs(past_puck[1] - puck_loc[-1])
-    #         if x_diff > threshold or y_diff > threshold:
-    #             print("check_attack: False")
-    #             return False
-    #     print("check_attack: True")
-    #     return True
-
-
-    #     # if abs(kart_to_their_goal) > abs(puck_to_their_goal):
-    #     #     print('attack: True')
-    #     #     return True
-    #     # else:
-    #     #     print('attack: False')
-    #     #     return False
 
     def attack_action(self, kart_loc, kart_front, puck_loc, action):
         vector_of_kart = self.get_vector_from_this_to_that(kart_loc, kart_front)
