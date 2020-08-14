@@ -3,6 +3,7 @@ from .model import PuckDetector, load_model
 import torchvision.transforms.functional as F
 import torch
 import random
+from colorama import Fore
 
 """ TODO:
 1. Fix the set goal locations to do it based off of team, and to only do it in the begging of a match.
@@ -47,10 +48,10 @@ class HockeyPlayer:
         #                 'stuck': self.stuck_action
         #                 }
         from collections import deque
-        self.past_kart_locs = deque(maxlen=5)
-        self.past_puck_locs = deque(maxlen=5)
-        self.past_state = deque(maxlen=5)
-        self.past_actions = deque(maxlen=5)
+        self.past_kart_locs = deque(maxlen=7)
+        self.past_puck_locs = deque(maxlen=7)
+        self.past_state = deque(maxlen=7)
+        self.past_actions = deque(maxlen=7)
         self.state_lock = False
         self.state_lock_turns = 0
         self.current_vel = 0
@@ -121,7 +122,8 @@ class HockeyPlayer:
             self.state = self.set_state(self.kart_loc, self.puck_loc)
         # self.stuck(kart_loc)
         # self.state = 'stuck'
-        print('state:', self.state)
+        print(Fore.RED + 'state: {}'.format(self.state) + Fore.WHITE)
+
         if self.state == 'kickoff':
             # self.puck_loc = (0, 0)
             action = self.kickoff_action(self.kart_loc, self.kart_front, self.puck_loc, action)
@@ -240,10 +242,10 @@ class HockeyPlayer:
     def puck_lost(self, puck_loc):
         threshold = -.7
         checker = 0
-        if puck_loc[0] > threshold or puck_loc[-1] > threshold:
+        if puck_loc[0] < threshold or puck_loc[-1] < threshold:
             checker += 1
         for past_puck in reversed(self.past_puck_locs):
-            if past_puck[0] > threshold or past_puck[-1] > threshold:
+            if past_puck[0] < threshold or past_puck[-1] < threshold:
                 checker += 1
         if checker / (len(self.past_puck_locs) + 1) > 0.6:
             print('puck lost true', checker)
@@ -324,7 +326,7 @@ class HockeyPlayer:
             action['steer'] = -.4 * steer_dir
         elif x < -3:
             action['steer'] = .4 * steer_dir
-        if abs(y) < 20:
+        if abs(y) < 20 and x < .05 and x > -.05:
             action['nitro'] = True
 
         return action
@@ -585,7 +587,8 @@ class HockeyPlayer:
         steer_dir = self.get_orientation(kart_loc, kart_front)
         if x < 0.05 or x > -0.05: # hammer it home!
             print('1')
-            action['steer'] = np.sign(np.cross(vector_to_goal, vector_of_kart)) * steer_dir
+            # action['steer'] = np.sign(np.cross(vector_to_goal, vector_of_kart)) * steer_dir
+            action['steer'] = x * steer_dir
             action['acceleration'] = 1
             action['nitro'] = True
         elif x > 0.05:
