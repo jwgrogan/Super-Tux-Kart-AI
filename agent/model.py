@@ -113,7 +113,8 @@ def load_model():
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L1_28.th'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE29'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L131AllPics.th'), map_location='cpu'))
-    r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE30AllPics.th'), map_location='cpu'))
+    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE30AllPics.th'), map_location='cpu'))
+    r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE3.th'), map_location='cpu'))
 
     return r
 
