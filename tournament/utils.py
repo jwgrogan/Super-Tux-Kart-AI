@@ -84,7 +84,6 @@ class Tournament:
             print('\rframe %d' % t, end='\r')
 
             state.update()
-
             list_actions = []
             for i, p in enumerate(self.active_players):
                 player = state.players[i]
@@ -119,7 +118,7 @@ class Tournament:
 
                 if verbose and (i == 0):
                     ax.clear()
-                    ax.imshow(self.k.render_data[0].image)
+                    ax.imshow(self.k.render_data[i].image)
                     WH2 = np.array([self.graphics_config.screen_width, self.graphics_config.screen_height]) / 2
                     ax.add_artist(
                         plt.Circle(WH2 * (1 + self._to_image(state.players[i].kart.location, kart_proj, kart_view)), 2,

@@ -5,6 +5,7 @@ import torch
 import random
 from colorama import Fore
 
+
 """ TODO:
 1. Fix the set goal locations to do it based off of team, and to only do it in the begging of a match.
 2. Tweak kickoff so that it only lasts enough frames for the puck to be in the view of the player.
@@ -48,6 +49,7 @@ class HockeyPlayer:
         #                 'stuck': self.stuck_action
         #                 }
         from collections import deque
+        self.player_id = player_id
         self.past_kart_locs = deque(maxlen=5)
         self.past_puck_locs = deque(maxlen=5)
         self.past_state = deque(maxlen=5)
@@ -56,6 +58,7 @@ class HockeyPlayer:
         self.state_lock_turns = 0
         self.current_vel = 0
         self.target_vel = 30
+        self.last_known_puck = []
         # load model
         self.model = load_model().eval()
 
@@ -64,8 +67,16 @@ class HockeyPlayer:
         # Determine whether player is on offense (position = 0) or defense (position = 1)
         if self.team == 0:
             self.position = (player_id / 2) % 2
+            self.our_goal_left = (-10, -64)
+            self.our_goal_right = (10, -64)
+            self.their_goal_left = (-10, 64)
+            self.their_goal_right = (10, 64)
         else:
             self.position = (player_id - 1 / 2) % 2
+            self.our_goal_left = (-10, 64)
+            self.our_goal_right = (10, 64)
+            self.their_goal_left = (-10, -64)
+            self.their_goal_right = (10, -64)
 
         # assign offense and defense
         if player_id // 2 == 0:
@@ -81,6 +92,7 @@ class HockeyPlayer:
         return: Dict describing the action
         """
         print('======================================== frame start ======================================')
+        print('Player ', self.player_id)
         action = {'acceleration': 1, 'brake': False, 'drift': False, 'nitro': False, 'rescue': False, 'steer': 0}
         self.current_vel = np.linalg.norm(player_info.kart.velocity)
         if len(self.past_actions) > 0:
@@ -89,7 +101,7 @@ class HockeyPlayer:
         image_transform = F.to_tensor(image)[None]
         # puck_loc = self.model(image_transform).squeeze(0).detach().cpu().numpy()
         self.image_puck_loc = (self.model(image_transform).detach().cpu().numpy())[0]
-        print("Puck image Location", self.image_puck_loc)
+        # print("Puck image Location", self.image_puck_loc)
         self.puck_loc = self.image_puck_loc
 
         x = self.image_puck_loc[0]
@@ -122,25 +134,27 @@ class HockeyPlayer:
             self.state = self.set_state(self.kart_loc, self.puck_loc)
         # self.stuck(kart_loc)
         # self.state = 'stuck'
-        print(Fore.RED + 'state: {}'.format(self.state) + Fore.WHITE)
-
-        if self.state == 'kickoff':
-            # self.puck_loc = (0, 0)
-            action = self.kickoff_action(self.kart_loc, self.kart_front, self.puck_loc, action)
-        elif self.state == 'in_goal':
-            action = self.getOutOfGoal(action)
-        elif self.state == 'attack':
-            action = self.attack_action(self.kart_loc, self.kart_front, self.puck_loc, action)
-        # elif self.state == 'positioning':
-        #     action = self.positioning_action(self.kart_loc, self.kart_front, self.puck_loc, action)
-        elif self.state == 'searching':
-            action = self.searching_action(self.kart_loc, self.kart_front, action)
-        elif self.state == 'stuck':
-            action = self.stuck_action(self.kart_loc, action)
-
         else:
             self.state_lock_turns -= 1
-            action = self.past_actions[-1]
+
+        print(Fore.RED + 'state: {}'.format(self.state) + Fore.WHITE)
+            print('state:', self.state)
+            if self.state == 'kickoff':
+                # self.puck_loc = (0, 0)
+                action = self.kickoff_action(self.kart_loc, self.kart_front, self.puck_loc, action)
+            elif self.state == 'in_goal':
+                action = self.getOutOfGoal(action)
+            elif self.state == 'attack':
+                action = self.attack_action(self.kart_loc, self.kart_front, self.puck_loc, action)
+                self.last_known_puck = self.image_puck_loc
+            # elif self.state == 'positioning':
+            #     action = self.positioning_action(self.kart_loc, self.kart_front, self.puck_loc, action)
+            elif self.state == 'searching':
+                action = self.searching_action(self.kart_loc, self.kart_front, action)
+            elif self.state == 'stuck':
+                action = self.stuck_action(self.kart_loc, action)
+
+
 
         if self.state_lock_turns == 0:
             self.state_lock = False
@@ -229,16 +243,6 @@ class HockeyPlayer:
         #   return (99, 99)
         # return (x, y)
 
-    # Used to Set the goal locations for each player in the beggining
-    def set_goal_loc(self, kart_loc):
-        z = kart_loc[-1]
-        if z < 0:
-            self.our_goal = (0, -64)
-            self.their_goal = (0, 64)
-        else:
-            self.our_goal = (0, 64)
-            self.their_goal = (0, -64)
-
     def puck_lost(self, puck_loc):
         threshold = -.8
         checker = 0
@@ -254,9 +258,9 @@ class HockeyPlayer:
             print('puck lost false', checker)
             return False
     
-    def get_orientation(self, kart_loc, puck_loc):
-        kart_loc_y = kart_loc[-1]
-        kart_front_y = puck_loc[-1]
+    def get_orientation(self):
+        kart_loc_y = self.kart_loc[-1]
+        kart_front_y = self.kart_front[-1]
         if kart_front_y > kart_loc_y:
             print('right is positive')
             return 1
@@ -270,9 +274,9 @@ class HockeyPlayer:
         x_diff = abs(last_loc[0] - kart_loc[0])
         y_diff = abs(last_loc[-1] - kart_loc[-1])
         if x_diff > threshold or y_diff > threshold:
-            print('reset check true', x_diff, y_diff)
+            # print('reset check true', x_diff, y_diff)
             return True
-        print('reset check false', x_diff, y_diff)
+        # print('reset check false', x_diff, y_diff)
         return False
 
 
@@ -284,8 +288,8 @@ class HockeyPlayer:
         # set kickoff and start timer for end
         if  self.kickoff(kart_loc) == True:
             self.kickoff_timer = 0
-            self.set_goal_loc(kart_loc)
-            print('their goal:', self.their_goal, '\nour goal:', self.our_goal)
+            # self.set_goal_loc(kart_loc)
+            print('their goal:', self.their_goal_left, self.their_goal_right ,'\nour goal:', self.our_goal_left, self.our_goal_right)
             return 'kickoff'
         else:
             self.kickoff_timer += 1
@@ -319,7 +323,7 @@ class HockeyPlayer:
         # puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
         # print('puck to goal:', puck_to_their_goal)
         action = {'acceleration': 1, 'steer': 4 * puck_loc[0], 'brake': False, 'nitro': True}
-        steer_dir = self.get_orientation(kart_loc, kart_front)
+        steer_dir = self.get_orientation()
         x = kart_loc[0]
         y = kart_loc[-1]
         if x > 3:
@@ -344,50 +348,55 @@ class HockeyPlayer:
             return False
 
     def getOutOfGoal(self, action):
+        goal = 64 * np.sign(self.kart_loc[1])
         # In the Blue goal
         if(self.kart_loc[1] > 0):
         # If facing backwards, go backwards
-            if (self.kart_front[1] - self.kart_loc[1] > .3):
+            if (self.kart_front[1] - self.kart_loc[1] > -.3):
                 action['acceleration'] = 0
                 action['brake'] = True
-                if (self.kart_loc[0] < 0):
+                if self.last_known_puck[0] < self.kart_loc[0]:
+                    action['steer'] = 1
+                else:
+                    action['steer'] = -1
+            # Otherwise you're facing forwards, so accelerate
+            else:
+                action['acceleration'] = 1
+                action['brake'] = False
+                if self.last_known_puck[0] > self.kart_loc[0]:
                     action['steer'] = -1
                 else:
+                    action['steer'] = 1
+
+          # In the Red goal
+                else:
+        # If facing backwards, go backwards
+            if abs(self.kart_front[1] - self.kart_loc[1]) > .3:
+                action['acceleration'] = 0
+                action['brake'] = True
+                if self.last_known_puck[0] < self.kart_loc[0]:
+                    action['steer'] = -1
+            else:
                     action['steer'] = 1
         # Otherwise you're facing forwards, so accelerate
         else:
             action['acceleration'] = 1
             action['brake'] = False
-            if (self.kart_loc[0] < 0):
-                action['steer'] = 1
+                if self.last_known_puck[0] < self.kart_loc[0]:
+                    action['steer'] = 1
             else:
-                action['steer'] = -1
-        # In the Red goal
-        if (self.kart_loc[1] < 0):
-        # If facing backwards, go backwards
-            if abs(self.kart_front[1] - self.kart_loc[1]) > .3:
-                action['acceleration'] = 0
-                action['brake'] = True
-            if (self.kart_loc[0] < 0):
-                action['steer'] = .2    
-            else:
-                action['steer'] = -.2
-        # Otherwise you're facing forwards, so accelerate
-        else:
-            action['acceleration'] = 1
-            action['brake'] = False
-            if (self.kart_loc[0] < 0):
-                action['steer'] = -.2
-            else:
-                action['steer'] = .2
-
+                    action['steer'] = -1
+        if abs(self.kart_loc[1]) > 69:
+            action['steer'] = action['steer'] * ((10 - abs(self.kart_loc[0])) / 10)
+        action['nitro'] = False
         return action
 
 
     # ============================================= stuck logic =============================================
     def stuck(self, kart_loc):
-        # print("locations", kart_loc, self.past_kart_locs[-1])
-        # print("stuck check Difference", abs(kart_loc - self.past_kart_locs[-1]))
+        print("locations", kart_loc, self.past_kart_locs[-1])
+        print("Difference", abs(kart_loc - self.past_kart_locs[-1]))
+        print("NUMPY ", (abs(kart_loc - self.past_kart_locs[-1]) < 0.05).all())
         if ((abs(kart_loc - self.past_kart_locs[-1]) < 0.01).all()):
             self.state_lock = True
             if self.current_vel > 10.0 and self.past_actions[-1]['acceleration'] > 0:
@@ -407,17 +416,42 @@ class HockeyPlayer:
 
         action['brake'] = not past_action['brake']
 
-        if past_action['acceleration'] > 0:
-            action['acceleration'] = 0
-        else:
-            action['acceleration'] = .5
 
-        if(np.sign(distance_moved[0]) == np.sign(distance_moved[1])):
-            action['steer'] = 1
-        else:
-            action['steer'] = -1
+        # if past_action['acceleration'] > 0:
+        #     action['acceleration'] = 0
+        # else:
+        #     action['acceleration'] = .5
 
-        print("stuck action:", action['steer'])
+        if (self.kart_loc[0] < 0):
+            if (self.kart_front[0] - self.kart_loc[0] < 0):
+                action['acceleration'] = 0
+            else:
+                action['acceleration'] = .5
+        else:
+            if (self.kart_front[0] - self.kart_loc[0] > 0):
+                action['acceleration'] = 0
+            else:
+                action['acceleration'] = .5
+
+        if(self.last_known_puck[1] > self.kart_loc[1]):
+
+            if(self.kart_loc[0] < 0):
+                action['steer'] = 1
+            else:
+                action['steer'] = -1
+
+        elif(self.last_known_puck[1] < self.kart_loc[1]):
+            if(self.kart_loc[0] < 0):
+                action['steer'] = -1
+            else:
+                action['steer'] = 1
+        # if(np.sign(distance_moved[0]) == np.sign(distance_moved[1])):
+        #     action['steer'] = 1
+        # else:
+        #     action['steer'] = -1
+
+        action['nitro'] = False
+        print("stuck action:", action)
         return action
 
 
@@ -553,6 +587,7 @@ class HockeyPlayer:
                 action['steer'] = 1
                 action['drift'] = True
                 action['acceleration'] = .3
+        action['nitro'] = False
         return action
     # def searching_action(self, kart_loc, kart_front, action):
     #     # Flip a bitch and zoom
@@ -621,11 +656,11 @@ class HockeyPlayer:
 
     def attack_action(self, kart_loc, kart_front, puck_loc, action):
         vector_of_kart = self.get_vector_from_this_to_that(kart_loc, kart_front)
-        vector_to_goal = self.get_vector_from_this_to_that(kart_loc, self.their_goal)
+        vector_to_goal = self.get_vector_from_this_to_that(kart_loc, (0 , self.their_goal_left[1]))
      
         x = puck_loc[0]
         action = {'acceleration': 1, 'steer': x, 'brake': False}
-        steer_dir = self.get_orientation(kart_loc, kart_front)
+        steer_dir = self.get_orientation()
 
         if x < 0.05 and x > -0.05: # hammer it home!
             print('1')
@@ -658,11 +693,10 @@ class HockeyPlayer:
         
         return action
 
-
     # ============================================= defense logic =============================================
     def defense_position(self, kart_loc, puck_loc):
-        kart_to_our_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
-        puck_to_our_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
+        kart_to_our_goal = np.linalg.norm(kart_loc - np.float32((0 , self.their_goal_left[1])))
+        puck_to_our_goal = np.linalg.norm(puck_loc - np.float32((0 , self.their_goal_left[1])))
 
         if abs(kart_to_our_goal) < abs(puck_to_our_goal):
             return True

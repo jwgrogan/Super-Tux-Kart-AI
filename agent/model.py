@@ -102,7 +102,7 @@ def save_model(model):
     from torch import save
     from os import path
     if isinstance(model, PuckDetector):
-        return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'MSE.th'))
+        return save(model.state_dict(), path.join(path.dirname(path.abspath(__file__)), 'MSE4.th'))
     raise ValueError("model type '%s' not supported!" % str(type(model)))
 
 def load_model():
@@ -113,8 +113,6 @@ def load_model():
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L1_28.th'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE29'), map_location='cpu'))
     # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L131AllPics.th'), map_location='cpu'))
-    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE30AllPics.th'), map_location='cpu'))
-    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE3.th'), map_location='cpu'))
     r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE4.th'), map_location='cpu'))
 
     return r

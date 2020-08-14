@@ -106,7 +106,9 @@ class Tournament:
           # if (134217729 in label):
             # print("SHAPPPEEEEEE \dab", image.shape)
             player = i
-            PIL.Image.fromarray(image).crop((0,100,image.shape[1], image.shape[0]-50)).save(os.path.join(save, 'player%02d_%05d.png' % (player, t)))
+            PIL.Image.fromarray(image).save(
+              os.path.join(save, 'player%02d_%05d.png' % (player, t)))
+            # PIL.Image.fromarray(image).crop((0,100,image.shape[1], image.shape[0]-50)).save(os.path.join(save, 'player%02d_%05d.png' % (player, t)))
             ball_coords = self.to_numpy(state.soccer.ball.location)
             kart_proj = np.array(state.players[i].camera.projection).T
             kart_view = np.array(state.players[i].camera.view).T

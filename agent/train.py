@@ -1,4 +1,4 @@
-from .model import PuckDetector, save_model
+from .model import PuckDetector, save_model, load_model
 import torch
 import torch.utils.tensorboard as tb
 import numpy as np
@@ -112,7 +112,8 @@ def train(args):
     # Define model stuff
     layers = [16, 32, 64, 128]
     params_logger.add_text('layers', str(layers))
-    model = PuckDetector(layers=layers).to(device)
+    # model = PuckDetector(layers=layers).to(device)
+    model = load_model().to(device)
     # model = PuckDetector().to(device)
     
     # Define Loss
@@ -186,7 +187,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_dir', default=r'tmpLogs')
-    parser.add_argument('--run', default='41')
+    parser.add_argument('--run', default='46')
     parser.add_argument('-e', '--epoch', default=20)
 
     # Put custom arguments here
