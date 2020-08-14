@@ -89,11 +89,13 @@ class HockeyPlayer:
         # puck_loc = self.model(image_transform).squeeze(0).detach().cpu().numpy()
         self.image_puck_loc = (self.model(image_transform).detach().cpu().numpy())[0]
         print("Puck image Location", self.image_puck_loc)
+        self.puck_loc = self.image_puck_loc
+
         x = self.image_puck_loc[0]
         y = self.image_puck_loc[1]
 
-        self.puck_loc = np.float32(self.image_to_local(x, y, player_info))
-        print('puck world loc:', self.puck_loc)
+        # self.puck_loc = np.float32(self.image_to_local(x, y, player_info))
+        # print('puck world loc:', self.puck_loc)
 
 
         x_middle = 0
@@ -115,7 +117,7 @@ class HockeyPlayer:
         print('state:', self.state)
         if self.state == 'kickoff':
             # self.puck_loc = (0, 0)
-            action = self.kickoff_action(self.kart_loc, self.kart_front, self.puck_loc, self.image_puck_loc, action)
+            action = self.kickoff_action(self.kart_loc, self.kart_front, self.puck_loc, action)
         elif self.state == 'in_goal':
             action = self.getOutOfGoal(self.kart_loc, action, player_info)
         elif self.state == 'attack':
@@ -212,9 +214,9 @@ class HockeyPlayer:
         view = np.array(player.camera.view).T
         x, _, y = self._to_world(x, y, proj, view, player.kart.location[1])
         # strip ridiculous values
-        if abs(x) > 39 or abs(y) > 64:
-          return (99, 99)
-        return (x, y)
+        # if abs(x) > 39 or abs(y) > 64:
+        #   return (99, 99)
+        # return (x, y)
 
     # Used to Set the goal locations for each player in the beggining
     def set_goal_loc(self, kart_loc):
@@ -233,10 +235,32 @@ class HockeyPlayer:
     #         return False
 
     def puck_known_check(self, puck_loc):
-        if all(puck_loc) == (99, 99):
-            return False
+        threshold = 1
+        x_diffs = []
+        y_diffs = []
+        for past_puck in reversed(self.past_puck_locs):
+            x_diff = abs(past_puck[0] - puck_loc[0])
+            y_diff = abs(past_puck[1] - puck_loc[-1])
+            x_diffs.append(x_diff)
+            y_diffs.append(y_diff)
+            if all(x_diffs) > threshold or all(y_diffs) > threshold:
+                print("check_attack: False")
+                return False
+        print("check_attack: True")
+        return True
+
+        # if all(puck_loc) == (99, 99):
+        #     return False
+        # else:
+        #     return True
+    
+    def get_orientation(kart_loc, puck_loc):
+        kart_loc_y = kart_loc[-1]
+        kart_front_y = puck_loc[-1]
+        if kart_front_y > kart_loc_y:
+            return 1
         else:
-            return True
+            return -1
 
 
     # ============================================= set state logic =============================================
@@ -277,13 +301,16 @@ class HockeyPlayer:
             return True
         return False
 
-    def kickoff_action(self, kart_loc, kart_front, puck_loc, image_puck_loc, action):
+    def kickoff_action(self, kart_loc, kart_front, puck_loc, action):
         """
         boost towards center to find puck
         """
-        action = {'acceleration': 1, 'steer': 0, 'brake': False, 'nitro': True}
+        # puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
+        # print('puck to goal:', puck_to_their_goal)
+        
         x = kart_loc[0]
-        if abs(x) > 10:
+        action = {'acceleration': 1, 'steer': x, 'brake': False, 'nitro': True}
+        if abs(x) > 5:
             action['acceleration'] = 0.5
         return action
 
@@ -320,8 +347,8 @@ class HockeyPlayer:
         if (self.kart_loc[1] < 0):
         # If facing backwards, go backwards
             if abs(self.kart_front[1] - self.kart_loc[1]) > .3:
-                    action['acceleration'] = 0
-                    action['brake'] = True
+                action['acceleration'] = 0
+                action['brake'] = True
             if (self.kart_loc[0] < 0):
                 action['steer'] = .2    
             else:
@@ -347,7 +374,7 @@ class HockeyPlayer:
             if self.current_vel > 10.0 and self.past_actions[-1]['acceleration'] > 0:
               self.state_lock_turns = 5
             else:
-            self.state_lock_turns = 3
+                self.state_lock_turns = 3
             return True
         else:
             return False
@@ -377,19 +404,21 @@ class HockeyPlayer:
     def positioning(self, kart_loc, puck_loc):
         if self.puck_known_check(puck_loc) == False:
             return True
-        
-        distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
-        kart_to_their_goal = abs(kart_loc[-1] - np.float32(self.their_goal[-1]))
-        print('kart to goal dist:', kart_to_their_goal)
-        puck_to_their_goal = abs(puck_loc[-1] - np.float32(self.their_goal[-1]))
-        print('puck to their goal dist:', puck_to_their_goal)
-
-        if (kart_to_their_goal - puck_to_their_goal) < 0:
-            print('positioning: True')
-            return True
         else:
-            print('positioning: False')
             return False
+
+        # distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
+        # kart_to_their_goal = abs(kart_loc[-1] - np.float32(self.their_goal[-1]))
+        # print('kart to goal dist:', kart_to_their_goal)
+        # puck_to_their_goal = abs(puck_loc[-1] - np.float32(self.their_goal[-1]))
+        # print('puck to their goal dist:', puck_to_their_goal)
+
+        # if (kart_to_their_goal - puck_to_their_goal) < 0:
+        #     print('positioning: True')
+        #     return True
+        # else:
+        #     print('positioning: False')
+        #     return False
 
     def positioning_action(self, kart_loc, kart_front, puck_loc, action):
         vector_of_kart = self.get_vector_from_this_to_that(kart_loc, kart_front)
@@ -404,50 +433,100 @@ class HockeyPlayer:
 
     # ============================================= attack logic =============================================
     def attack(self, kart_loc, puck_loc):
-        distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
-        kart_to_their_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
-        puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
 
-        if abs(kart_to_their_goal) > abs(puck_to_their_goal):
-            print('attack: True')
-            return True
-        else:
-            print('attack: False')
-            return False
+
+        # distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
+        # kart_to_their_goal = np.linalg.norm(kart_loc - np.float32(self.their_goal))
+        # puck_to_their_goal = np.linalg.norm(puck_loc - np.float32(self.their_goal))
+        threshold = 0.1
+        for past_puck in reversed(self.past_puck_locs):
+            x_diff = abs(past_puck[0] - puck_loc[0])
+            y_diff = abs(past_puck[1] - puck_loc[-1])
+            if x_diff > threshold or y_diff > threshold:
+                print("check_attack: False")
+                return False
+        print("check_attack: True")
+        return True
+
+
+        # if abs(kart_to_their_goal) > abs(puck_to_their_goal):
+        #     print('attack: True')
+        #     return True
+        # else:
+        #     print('attack: False')
+        #     return False
 
     def attack_action(self, kart_loc, kart_front, puck_loc, action):
+        # last_steer = action['steer']
+        
 
         vector_of_kart = self.get_vector_from_this_to_that(kart_loc, kart_front)
         vector_to_goal = self.get_vector_from_this_to_that(kart_loc, self.their_goal)
-        vector_to_puck = self.get_vector_from_this_to_that(kart_loc, puck_loc)
-        print('kart ve', vector_of_kart, 'to puck vec', vector_to_puck)
+        # vector_to_puck = self.get_vector_from_this_to_that(kart_loc, puck_loc)
+        # print('kart ve', vector_of_kart, 'to puck vec', vector_to_puck)
 
-        last_steer = action['steer']
-        print('last steer:', last_steer)
-        x = np.sign(np.cross(vector_of_kart, vector_to_puck))
-        print('x:', x)
-        action = {'acceleration': 1, 'steer': -x, 'brake': False, 'nitro': True}
+        # if puck_loc[0]!=99: #if distance is too close, we'll orient ourselves not facing center sometimes
+        #     if abs(1 - np.dot(vector_of_kart, vector_to_puck)) > 1e-4:
+        #         action['steer'] = np.sign(np.cross(vector_to_puck, vector_of_kart))
+        # else: #remain stationary while waiting for puck to approach
+        #     action['steer'] = 0
+        #     action['brake']=True
+        #     action['acceleration']=0.1
+        # return action
+
+
+
+        x = puck_loc[0]
+        action = {'acceleration': .75, 'steer': x, 'brake': False}
+
+        steer_dir = get_orientation(kart_loc, kart_front)
+        if x < 0.05 or x < -0.05:
+            action['steer'] = -np.sign(np.cross(vector_to_goal, vector_of_kart))
+            action['acceleration'] = .25
+        elif x > 0.3 or x < -0.3:
+            action['steer'] = 1
+            action['acceleration'] = .5
+
+        elif x > 0.4: 
+            action['steer'] = 1
+            action['drift'] = True
+            action['acceleration'] = .25
+        elif x < -0.4:
+            action['steer'] = 1
+            action['drift'] = True
+            action['acceleration'] = .25
         
-        
-        distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
-        print('distance:', distance_to_puck)
-        # # print(distance_to_puck)
-        
-
-        # # action['steer'] = np.sign(np.dot(vector_of_kart, vector_to_puck))
-        # action['acceleration'] = 1
-        # action['nitro'] = True
-
-        if distance_to_puck < 20:
-            # print('kickoff loop')
-            # if abs(sum(vector_to_goal) - sum(vector_to_puck)) > .5:
-            #     action['steer'] = np.sign(x)
-            # else:
-            action['steer'] = -np.sign(np.cross(vector_of_kart, vector_to_goal))
-            action['acceleration'] = 0.5
-            action['nitro'] = False
-
         return action
+
+        
+        # print('last steer:', last_steer)
+        # x = np.sign(np.cross(vector_to_puck, vector_of_kart))
+        # print('x:', x)
+        # action = {'acceleration': 1, 'steer': -x, 'brake': False, 'nitro': True}
+        
+        
+        # distance_to_puck = np.linalg.norm(kart_loc - puck_loc)
+        # print('distance:', distance_to_puck)
+        # # # print(distance_to_puck)
+        
+
+        # # # action['steer'] = np.sign(np.dot(vector_of_kart, vector_to_puck))
+        # # action['acceleration'] = 1
+        # # action['nitro'] = True
+
+        # if distance_to_puck < 20:
+        #     # print('kickoff loop')
+        #     # if abs(sum(vector_to_goal) - sum(vector_to_puck)) > .5:
+        #     #     action['steer'] = np.sign(x)
+        #     # else:
+        #     action['steer'] = -np.sign(np.cross(vector_of_kart, vector_to_goal))
+        #     action['acceleration'] = 0.5
+        #     action['nitro'] = False
+
+        # return action
+
+
+
 
         # # action = {'acceleration': 1, 'steer': 0, 'brake': False}
 
