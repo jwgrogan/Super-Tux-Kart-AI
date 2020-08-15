@@ -460,8 +460,12 @@ class HockeyPlayer:
             self.search_count -= 1
 
         if self.search_count == 3:
+            self.state_lock = True
+            self.state_lock_turns = 7
             return True
         elif self.search_count == 2 and self.state == 'searching':
+            self.state_lock = True
+            self.state_lock_turns = 7
             return True
 
         return False
