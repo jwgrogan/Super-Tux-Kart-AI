@@ -675,61 +675,61 @@ class HockeyPlayer:
             print('1')
             # action['steer'] = np.sign(np.cross(vector_to_goal, vector_of_kart))
             action['steer'] = x 
-            action['acceleration'] = .75
+            action['acceleration'] = .1
         elif x > 0.05 and x < .2:
             print('2')
             action['steer'] = .75
             # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .5
+            action['acceleration'] = .75
             action['brake'] = True
         elif x < -0.05 and x > -.3:
             print('3')
             action['steer'] = -.9
             # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .5
+            action['acceleration'] = .75
             action['brake'] = True
         elif x > .2 and x < .4:
             print('2')
             action['steer'] = .9
             # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .5
+            action['acceleration'] = .65
             action['brake'] = True
         elif x < -.2 and x > -.4:
             print('3')
             action['steer'] = -.75
             # action['steer'] = -2 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .5
+            action['acceleration'] = .65
             action['brake'] = True
         elif x > 0.4 and x < 0.7:
             print('4')
             action['steer'] = 1
             # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .3
+            action['acceleration'] = .5
             action['brake'] = True
             action['drift'] = True
         elif x < -0.4 and x > -0.7:
             print('5')
             action['steer'] = -1 
             # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .3
+            action['acceleration'] = .5
             action['brake'] = True
             action['drift'] = True
         elif x > 0.8:
             print('4')
             action['steer'] = 1
-            if np.sign(self.current_vel) == -1:
-                action['steer'] = -1
+            # if np.sign(self.current_vel) == -1:
+            #     action['steer'] = -1
             # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .25
+            action['acceleration'] = .4
             action['brake'] = True
             action['drift'] = False
         elif x < -0.8:
             print('5')
             action['steer'] = -1
-            if np.sign(self.current_vel) == -1:
-                action['steer'] = 1
+            # if np.sign(self.current_vel) == -1:
+            #     action['steer'] = 1
             # action['steer'] = 4 * np.sign(np.cross(vector_to_goal, vector_of_kart))
-            action['acceleration'] = .25
+            action['acceleration'] = .4
             action['brake'] = True
             action['drift'] = True
             
