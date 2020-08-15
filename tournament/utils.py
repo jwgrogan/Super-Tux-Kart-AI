@@ -2,7 +2,7 @@ import pystk
 import numpy as np
 # TODO: remove this before submitting
 import csv
-
+import time
 class Player:
     def __init__(self, player, team=0):
         self.player = player
@@ -90,7 +90,10 @@ class Tournament:
                 image = np.array(self.k.render_data[i].image)
                 action = pystk.Action()
                 if (i % 2 == 0):
+                    tick = time.time()
                     player_action, guess_coord = p(image, player)
+                    tock = time.time()
+                    print("PRINT THE GODDAM TIME ", tock - tick)
                 else:
                     player_action = p(image, player)
                 for a in player_action:
