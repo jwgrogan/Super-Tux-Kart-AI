@@ -85,7 +85,6 @@ class Tournament:
     player_last_state = np.empty([len(self.active_players), 2])
 
     for t in tqdm(range(max_frames)):
-      # print('\rframe %d' % t, end='\r')
 
       state.update()
 

@@ -89,13 +89,13 @@ class Tournament:
                 player = state.players[i]
                 image = np.array(self.k.render_data[i].image)
                 action = pystk.Action()
-                if (i % 2 == 0):
-                    tick = time.time()
-                    player_action, guess_coord = p(image, player)
-                    tock = time.time()
-                    print("PRINT THE GODDAM TIME ", tock - tick)
-                else:
-                    player_action = p(image, player)
+                # if (i % 2 == 0):
+                #     tick = time.time()
+                #     player_action, guess_coord = p(image, player)
+                #     tock = time.time()
+                #     print("PRINT THE GODDAM TIME ", tock - tick)
+                # else:
+                player_action = p(image, player)
                 for a in player_action:
                     setattr(action, a, player_action[a])
 
@@ -129,10 +129,10 @@ class Tournament:
                     ax.add_artist(
                         plt.Circle(WH2 * (1 + self._to_image(ball_coords, kart_proj, kart_view)), 2, ec='r', fill=False,
                                    lw=1.5))
-                    if(i % 2 == 0):
-                        ax.add_artist(
-                            plt.Circle(WH2 * (1 + guess_coord), 2, ec='g', fill=False,
-                                       lw=1.5))
+                    # if(i % 2 == 0):
+                    #     ax.add_artist(
+                    #         plt.Circle(WH2 * (1 + guess_coord), 2, ec='g', fill=False,
+                    #                    lw=1.5))
                     plt.pause(1e-3)
                 # TODO: END
             s = self.k.step(list_actions)

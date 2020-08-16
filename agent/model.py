@@ -10,7 +10,6 @@ def spatial_argmax(logit):
     :param logit: A tensor of size BS x H x W
     :return: A tensor of size BS x 2 the soft-argmax in normalized coordinates (-1 .. 1)
     """
-    # print("LOGGGITS", logit.shape)
     weights = F.softmax(logit.view(logit.size(0), -1), dim=-1).view_as(logit)
     return torch.stack(((weights.sum(1) * torch.linspace(-1, 1, logit.size(2)).to(logit.device)[None]).sum(1),
                         (weights.sum(2) * torch.linspace(-1, 1, logit.size(1)).to(logit.device)[None]).sum(1)), 1)
@@ -48,14 +47,6 @@ class PuckDetector(torch.nn.Module):
         self.input_mean = torch.Tensor([0.3521554, 0.30068502, 0.28527516])
         self.input_std = torch.Tensor([0.18182722, 0.18656468, 0.15938024])
 
-        conv_block = lambda c, h: [torch.nn.BatchNorm2d(h), torch.nn.Conv2d(h, c, 5, 2, 2), torch.nn.ReLU(True)]
-
-        # h, _conv = 3, []
-        # for c in layers:
-        #     _conv += conv_block(c, h)
-        #     h = c
-        #
-        # self.classifier = torch.nn.Sequential(*_conv, torch.nn.Conv2d(h, 1, 1))
         c = 3
         self.use_skip = use_skip
         self.n_conv = len(layers)
@@ -94,9 +85,6 @@ class PuckDetector(torch.nn.Module):
 
         return spatial_argmax(self.classifier(z).squeeze(1))
 
-        # x = self._conv(img)
-        # return spatial_argmax(x[:, 0])
-
 
 def save_model(model):
     from torch import save
@@ -109,10 +97,6 @@ def load_model():
     from torch import load
     from os import path
     r = PuckDetector()
-    # print("looooad model")
-    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L1_28.th'), map_location='cpu'))
-    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE29'), map_location='cpu'))
-    # r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'L131AllPics.th'), map_location='cpu'))
     r.load_state_dict(load(path.join(path.dirname(path.abspath(__file__)), 'MSE4.th'), map_location='cpu'))
 
     return r
